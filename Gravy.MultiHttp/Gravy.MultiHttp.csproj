@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageId>Gravy.MultiHttp</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Kevin Gravier</Authors>
+        <PackageTags>TODO</PackageTags>
+        <Description>TODO</Description>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <Target Name="CopyNuget" AfterTargets="Pack">
+        <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg"
+              DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg"
+              OverwriteReadOnlyFiles="true" />
+    </Target>
+    
+    <ItemGroup>
+        <Using Include="Gravy.MultiHttp.Interfaces" />
+    </ItemGroup>
+
+</Project>

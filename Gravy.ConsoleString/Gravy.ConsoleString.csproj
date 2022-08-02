@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageId>Gravy.ConsoleString</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Kevin Gravier</Authors>
+        <PackageTags>TODO</PackageTags>
+        <Description>TODO</Description>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <Target Name="CopyNuget" AfterTargets="Pack">
+        <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
+    </Target>
+    
+    <ItemGroup>
+      <PackageReference Include="Ansi" Version="1.0.3" />
+      <PackageReference Include="Gravy.MetaString" Version="1.0.0" />
+      <PackageReference Include="Gravy.MetaString.Generator" Version="1.0.0" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Test" />
+    </ItemGroup>
+        
+    <ItemGroup>
+    </ItemGroup>
+
+</Project>
