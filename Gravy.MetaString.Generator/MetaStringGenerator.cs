@@ -99,6 +99,7 @@ public partial class {classData.ClassName} : {classData.BaseClassName}
             sb.Append($@"
 public static class MetaString_{classData.ClassName}_Generated {{
     public static {classData.ClassName} Meta(this string str) => {Convert($"str.Meta<{classData.MetaType}>()")};
+    public static {classData.ClassName} Meta(this string str, {classData.MetaType} meta) => {Convert($"str.Meta<{classData.MetaType}>(meta)")};
 }}");
         
         var sourceText = SourceText.From(sb.ToString(), Encoding.UTF8);
