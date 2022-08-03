@@ -21,15 +21,12 @@
     
     <ItemGroup>
       <PackageReference Include="Ansi" Version="1.0.3" />
-      <PackageReference Include="Gravy.MetaString" Version="1.0.0" />
-      <PackageReference Include="Gravy.MetaString.Generator" Version="1.0.0" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+      <ProjectReference Include="../Gravy.MetaString/Gravy.MetaString.csproj" />
+      <ProjectReference Include="../Gravy.MetaString.Generator/Gravy.MetaString.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
     
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Test" />
     </ItemGroup>
-        
-    <ItemGroup>
-    </ItemGroup>
-
+    
 </Project>

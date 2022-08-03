@@ -96,7 +96,7 @@ public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaE
         sb.Append("}");
         
         var sourceText = SourceText.From(sb.ToString(), Encoding.UTF8);
-        context.AddSource($"{classData.ClassName}.generated.cs", sourceText);
+        context.AddSource($"{classData.ClassName}.g.cs", sourceText);
     }
 
     private class SyntaxReceiver : ISyntaxReceiver
@@ -113,6 +113,7 @@ public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaE
         }
     }
 
+#if DEBUG
     private static void WaitForDebug()
     {
         Console.Error.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
@@ -121,6 +122,7 @@ public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaE
             Thread.Sleep(100);
         }
     }
+#endif
     
     private class ClassData
     {
