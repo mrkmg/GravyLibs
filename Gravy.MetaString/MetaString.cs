@@ -1,11 +1,19 @@
-﻿namespace Gravy.MetaString;
+﻿using System.Diagnostics;
 
+namespace Gravy.MetaString;
+
+[DebuggerDisplay("{DebuggerDisplay}")]
 public partial class MetaString<T>
 {
     public PositionedMetaEntry<T>[] MetaEntries { get; }
     public string RawText => string.Join(null, MetaEntries.Select(e => e.Text));
-
-    public MetaString(string text, T metaData)
+    
+    public MetaString(string text)
+    {
+        MetaEntries = new [] { new PositionedMetaEntry<T>(0, text, default) };
+    }
+    
+    public MetaString(string text, T metaData = default!)
     {
         MetaEntries = new [] { new PositionedMetaEntry<T>(0, text, metaData) };
     }
@@ -13,11 +21,13 @@ public partial class MetaString<T>
     protected MetaString(IEnumerable<MetaEntry<T>> entries)
     {
         MetaEntries = entries.Positioned().ToArray();
+        CheckPositions();
     }
 
     protected MetaString(PositionedMetaEntry<T>[] entries)
     {
         MetaEntries = entries;
+        CheckPositions();
     }
 
     public object Clone()
@@ -33,6 +43,9 @@ public partial class MetaString<T>
         var entry = MetaEntries[entryIdx];
         return new (entry.Text[charInx], entry.Data);
     }
+
+    public override string ToString()
+        => string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data?.ToString()}]"));
 
     private void CheckPositions()
     {
@@ -85,6 +98,8 @@ public partial class MetaString<T>
         var charIndex = index.IsFromEnd ? MetaEntries[entryIndex].Length - (index.Value - usedChars) : index.Value - usedChars;
         return (entryIndex, charIndex);
     }
+    
+    private string DebuggerDisplay => string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data}]"));
 }
 
 public readonly struct MetaChar<T>
@@ -119,6 +134,9 @@ public readonly struct MetaChar<T>
 
     public static bool operator !=(MetaChar<T> left, MetaChar<T> right)
         => !(left == right);
+
+    public static implicit operator char(MetaChar<T> metaChar)
+        => metaChar.Char;
 }
 
 public readonly struct MetaEntry<T>
@@ -149,7 +167,7 @@ public readonly struct MetaEntry<T>
     public override int GetHashCode()
         => HashCode.Combine(Text, Data);
         
-    public static EqualityComparer<T> Comparer { get; set; } = EqualityComparer<T>.Default;
+    public static IEqualityComparer<T> Comparer { get; set; } = EqualityComparer<T>.Default;
 
     public static bool operator ==(MetaEntry<T> left, MetaEntry<T> right)
         => left.Equals(right);
@@ -238,4 +256,7 @@ public static class PositionedMetaEntryExtensions
     
     public static PositionedMetaEntry<T> PositionedAt<T>(this PositionedMetaEntry<T> entity, int offset)
         => new(offset, entity.Text, entity.Data);
+    
+    public static MetaString<T> Meta<T>(this string str, T metaData = default!) 
+        => new(str, metaData); 
 }

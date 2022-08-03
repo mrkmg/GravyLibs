@@ -11,7 +11,7 @@ namespace Gravy.ConsoleString;
 
 [DebuggerDisplay("{ToTaggedString()}")]
 [MetaStringGenerator(nameof(ConsoleFormat))]
-public partial class ConsoleString : MetaString<ConsoleFormat>, ICloneable
+public partial class ConsoleString : ICloneable
 {
     public static void EnableWindowsSupport()
         => WindowsConsole.TryEnableVirtualTerminalProcessing();

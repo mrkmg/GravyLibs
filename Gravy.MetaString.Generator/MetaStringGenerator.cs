@@ -75,7 +75,7 @@ public partial class {classData.ClassName} : {classData.BaseClassName}
 
         if (classData.Equality)
             sb.Append($@"
-    private bool Equals({classData.ClassName} other) => MetaEntries.Equals(other.MetaEntries); 
+    private bool Equals({classData.ClassName} other) => MetaEntries.SequenceEqual(other.MetaEntries); 
     public override bool Equals(object? obj) => obj is {classData.ClassName} other && Equals(other);
     public override int GetHashCode() => MetaEntries.GetHashCode();
     public static bool operator ==({classData.ClassName} first, {classData.ClassName} second) => first.Equals(second);

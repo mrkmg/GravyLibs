@@ -85,33 +85,53 @@ public partial class MetaString<T>
         return false;
     }
 
+    private static Range? IndexToRange(int index, int length = 1)
+    {
+        if (index == -1) return null;
+        return new Range(index, index + length);
+    }
+
     public virtual MetaString<T>[] Split(char separator)
         => Split(separator, int.MaxValue);
     public virtual MetaString<T>[] Split(char separator, StringSplitOptions options)
         => Split(separator, int.MaxValue, options);
     public virtual MetaString<T>[] Split(char separator, int count, StringSplitOptions options = StringSplitOptions.None)
-        => SplitInternal(s => s.Contains(separator), s => s.Split(separator, options), count, options);
+        => SplitInternal(s => IndexToRange(s.IndexOf(separator)), count, options);
 
     public virtual MetaString<T>[] Split(char[] separators)
         => Split(separators, int.MaxValue);
     public virtual MetaString<T>[] Split(char[] separator, StringSplitOptions options)
         => Split(separator, int.MaxValue, options);
     public virtual MetaString<T>[] Split(char[] separator, int count, StringSplitOptions options = StringSplitOptions.None)
-        => SplitInternal(s => separator.Any(s.Contains), s => s.Split(separator, options), count, options);
+        => SplitInternal(s => IndexToRange(s.IndexOfAny(separator)), count, options);
 
     public virtual MetaString<T>[] Split(string separator)
         => Split(separator, int.MaxValue);
     public virtual MetaString<T>[] Split(string separator, StringSplitOptions options)
         => Split(separator, int.MaxValue, options);
     public virtual MetaString<T>[] Split(string separator, int count, StringSplitOptions options = StringSplitOptions.None)
-        => SplitInternal(s => s.Contains(separator), s => s.Split(separator, options), count, options);
+        => SplitInternal(s => IndexToRange(s.IndexOf(separator, StringComparison.Ordinal), separator.Length), count, options);
     
     public virtual MetaString<T>[] Split(string[] separator)
         => Split(separator, int.MaxValue);
     public virtual MetaString<T>[] Split(string[] separator, StringSplitOptions options)
         => Split(separator, int.MaxValue, options);
     public virtual MetaString<T>[] Split(string[] separator, int count, StringSplitOptions options = StringSplitOptions.None)
-        => SplitInternal(s => separator.Any(s.Contains), s => s.Split(separator, options), count, options);
+        => SplitInternal(s =>
+        {
+            var min = int.MaxValue;
+            var minL = 0;
+            foreach (var str in separator)
+            {
+                var index = s.IndexOf(str, StringComparison.Ordinal);
+                if (index == -1 || index >= min) continue;
+                min = index;
+                minL = str.Length;
+            }
+            if (min == int.MaxValue)
+                return null;
+            return new Range(min, minL);
+        }, count, options);
     
     private static MetaString<T> TrimInternal(MetaString<T> cs, Func<string, string> trim, Func<string, string> trimStart, Func<string, string> trimEnd)
     {
@@ -119,23 +139,21 @@ public partial class MetaString<T>
             return Empty;
 
         var sourceEntries = cs.MetaEntries;
-        var targetEntries = new List<PositionedMetaEntry<T>>();
+        var targetEntries = new List<MetaEntry<T>>();
         var i = 0;
-        var next = 0;
         while (i < sourceEntries.Length)
         {
-            PositionedMetaEntry<T> newMetaEntry;
+            MetaEntry<T> newMetaEntry;
             
             if (i == sourceEntries.Length - 1)
             {
-                newMetaEntry = new(0, trim(sourceEntries[i].Text), sourceEntries[i].Data);
+                newMetaEntry = new(trim(sourceEntries[i].Text), sourceEntries[i].Data);
                 return newMetaEntry.Text.Length == 0 ? Empty : new(new[] { newMetaEntry });
             }
 
-            newMetaEntry = new(next, trimStart(sourceEntries[i].Text), sourceEntries[i].Data);
+            newMetaEntry = new(trimStart(sourceEntries[i].Text), sourceEntries[i].Data);
             if (newMetaEntry.Text.Length != 0)
             {
-                next += newMetaEntry.Length;
                 targetEntries.Add(newMetaEntry);
                 break;
             }
@@ -145,30 +163,28 @@ public partial class MetaString<T>
         var j = sourceEntries.Length - 1;
         while (true)
         {
-            var newMetaEntry = new PositionedMetaEntry<T>(next, trimEnd(sourceEntries[j].Text), sourceEntries[j].Data);
+            var newMetaEntry = new MetaEntry<T>(trimEnd(sourceEntries[j].Text), sourceEntries[j].Data);
             
             if (newMetaEntry.Text.Length > 0)
             {
                 while (++i < j)
                 {
-                    var entry = new PositionedMetaEntry<T>(next, sourceEntries[i].Text, sourceEntries[i].Data);
+                    var entry = new MetaEntry<T>(sourceEntries[i].Text, sourceEntries[i].Data);
                     targetEntries.Add(entry);
-                    next += entry.Length;
                 }
                 targetEntries.Add(newMetaEntry);
-                next += newMetaEntry.Length;
                 break;
             }
 
             if (--j > i)
                 continue;
-            targetEntries[^1] = new(next, trimEnd(targetEntries[^1].Text), targetEntries[^1].Data);
+            targetEntries[^1] = new(trimEnd(targetEntries[^1].Text), targetEntries[^1].Data);
             break;
         }
-        return new(targetEntries.ToArray());
+        return new(targetEntries);
     }
     
-    private MetaString<T>[] SplitInternal(Func<string, bool> needsSplit, Func<string, string[]> splits, int count, StringSplitOptions options)
+    private MetaString<T>[] SplitInternal(Func<string, Range?> nextSeparator, int count, StringSplitOptions options)
     {
         var newEntries = new List<MetaEntry<T>>();
         var result = new List<MetaString<T>>();
@@ -194,29 +210,28 @@ public partial class MetaString<T>
         {
             if (entry.Text.Length == 0)
                 continue;
-            
-            if (needsSplit(entry.Text))
+
+            var remaining = entry.Text;
+
+            while (remaining != string.Empty)
             {
-                var parts = splits(entry.Text);
-                if (parts.Length == 0)
+                var next = nextSeparator(remaining);
+                
+                if (next is null)
+                {
+                    newEntries.Add(new(remaining, entry.Data));
+                    break;
+                }
+                
+                if (next.Value.Start.Value == 0)
                 {
                     AddResult();
+                    remaining = remaining[next.Value.End..];
                     continue;
                 }
-                for (var index = 0; index < parts.Length - 1; index++)
-                {
-                    if (parts[index].Length != 0)
-                        newEntries.Add(new(parts[index], entry.Data));
-                    AddResult();
-                }
-                if (parts[^1] != string.Empty)
-                    AddResult();
-                else
-                    newEntries.Add(new(parts[^1], entry.Data));
-            }
-            else
-            {
-                newEntries.Add(entry);
+                
+                newEntries.Add(new(remaining[..next.Value.End], entry.Data));
+                remaining = remaining[next.Value.End..];
             }
         }
         if (newEntries.Count > 0) 

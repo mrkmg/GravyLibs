@@ -32,6 +32,7 @@ public partial class MetaString<T>
         var entries = new PositionedMetaEntry<T>[totalLength];
         Array.Copy(first.MetaEntries, entries, first.MetaEntries.Length);
         Array.Copy(second.MetaEntries, 0, entries, first.MetaEntries.Length, second.MetaEntries.Length);
+        entries.Reposition();
         return new(entries);
     }
 

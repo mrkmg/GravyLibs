@@ -20,4 +20,8 @@
               DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg"
               OverwriteReadOnlyFiles="true" />
     </Target>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Test" />
+    </ItemGroup>
 </Project>
