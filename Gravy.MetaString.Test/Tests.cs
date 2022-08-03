@@ -1,158 +1,143 @@
-using System.Drawing;
-
+#pragma warning disable CS8618
 
 namespace Gravy.MetaString.Test;
 
 
 public class Tests
 {
-    [Test]
-    public void Constructors()
+
+    public class Constructors
     {
-        var default1 = new MetaString<int>("test");
-        var default2 = new MetaString<string>("test");
-        var defined = new MetaString<int>("test", 42);
-        
-        Assert.Multiple(() =>
-        {
-            Assert.That(default1.MetaEntries.First().Text, Is.EqualTo("test"));
-            Assert.That(default2.MetaEntries.First().Text, Is.EqualTo("test"));
-            Assert.That(defined.MetaEntries.First().Text, Is.EqualTo("test"));
-            Assert.That(default1.MetaEntries.First().Data, Is.EqualTo(0));
-            Assert.That(default2.MetaEntries.First().Data, Is.EqualTo(null));
-            Assert.That(defined.MetaEntries.First().Data, Is.EqualTo(42));
-        });
+        public readonly MetaString<int> IntString1 = new("test");
+        public readonly MetaString<int> IntString2 = new("test", 42);
+        public readonly MetaString<string> StringString1 = new("test");
+
+        [Test] public void Constructor_With_DefaultValue_Int_Text() => Assert.That(IntString1.MetaEntries.First().Text, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefaultValue_Int_Value() => Assert.That(IntString1.MetaEntries.First().Data, Is.EqualTo(0));
+        [Test] public void Constructor_With_DefaultValue_String_Text() => Assert.That(StringString1.MetaEntries.First().Text, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefaultValue_String_Value() => Assert.That(StringString1.MetaEntries.First().Data, Is.EqualTo(null));
+        [Test] public void Constructor_With_DefinedValue_Int_Text() => Assert.That(IntString2.MetaEntries.First().Text, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefinedValue_Int_Value() => Assert.That(IntString2.MetaEntries.First().Data, Is.EqualTo(42));
     }
 
-    struct TestStruct
+    public class Equality
     {
-        private sealed class TestEqualityComparer : IEqualityComparer<TestStruct>
-        {
-            public bool Equals(TestStruct x, TestStruct y)
-            {
-                return Math.Abs(x.Test - y.Test) <= 10;
-            }
+        public readonly MetaString<string> Simple1 = "Hello World".Meta("testing");
+        public readonly MetaString<string> Simple2 = "Hello World".Meta("testing");
+        public readonly MetaString<string> SimpleD1 = "Hello World".Meta("other");
+        public readonly MetaString<string> SimpleD2 = "Hello Life".Meta("testing");
+        
+        public readonly MetaString<string> Complex1 = "Hello".Meta("test1") + " " + "World".Meta("test2");
+        public readonly MetaString<string> Complex2 = "Hello".Meta("test1") + " " + "World".Meta("test2");
+        public readonly MetaString<string> ComplexD1 = "Hello".Meta("test3") + " " + "World".Meta("test2");
+        public readonly MetaString<string> ComplexD2 = "Hello".Meta("test1") + " " + "Life".Meta("test2");
+        
+        public readonly MetaString<TestStruct> Custom1 = "Hello World".Meta(new TestStruct { Test = 22 });
+        public readonly MetaString<TestStruct> Custom2 = "Hello World".Meta(new TestStruct { Test = 27 });
+        public readonly MetaString<TestStruct> Custom3 = "Hello World".Meta(new TestStruct { Test = 38 });
 
-            public int GetHashCode(TestStruct obj)
-            {
-                return obj.Test;
-            }
+        [SetUp]
+        public void Setup()
+        {
+            MetaEntry<TestStruct>.Comparer = TestStruct.TestComparer;
         }
-
-        public static IEqualityComparer<TestStruct> TestComparer { get; } = new TestEqualityComparer();
-
-        public int Test;
-    };
-    [Test]
-    public void Equality()
-    {
-        var simple1 = "Hello World".Meta("testing");
-        var simple2 = "Hello World".Meta("testing");
-        var simpleD1 = "Hello World".Meta("other");
-        var simpleD2 = "Hello Life".Meta("testing");
         
-        var complex1 = "Hello".Meta("test1") + " " + "World".Meta("test2");
-        var complex2 = "Hello".Meta("test1") + " " + "World".Meta("test2");
-        var complexD1 = "Hello".Meta("test3") + " " + "World".Meta("test2");
-        var complexD2 = "Hello".Meta("test1") + " " + "Life".Meta("test2");
-        
-        var custom1 = "Hello World".Meta(new TestStruct { Test = 22 });
-        var custom2 = "Hello World".Meta(new TestStruct { Test = 27 });
-        var custom3 = "Hello World".Meta(new TestStruct { Test = 38 });
-        
-        MetaEntry<TestStruct>.Comparer = TestStruct.TestComparer;
-
-        Assert.Multiple(() =>
+        public struct TestStruct
         {
-            Assert.That(simple1, Is.EqualTo(simple2));
-            Assert.That(simple1, Is.Not.EqualTo(simpleD1));
-            Assert.That(simple1, Is.Not.EqualTo(simpleD2));
-            
-            Assert.That(complex1, Is.EqualTo(complex2));
-            Assert.That(complex1, Is.Not.EqualTo(complexD1));
-            Assert.That(complex1, Is.Not.EqualTo(complexD2));
-            
-            Assert.That(custom1, Is.EqualTo(custom2));
-            Assert.That(custom1, Is.Not.EqualTo(custom3));
-        });
-    }
-    
-    [Test]
-    public void Range()
-    {
-        var simple = "Hello World".Meta(0);
-        var complex = "He".Meta(1) +
-                         "ll".Meta(2) +
-                         "o " +
-                         "Wor".Meta(3) +
-                         "ld";
+            private sealed class TestEqualityComparer : IEqualityComparer<TestStruct>
+            {
+                public bool Equals(TestStruct x, TestStruct y)
+                {
+                    return Math.Abs(x.Test - y.Test) <= 10;
+                }
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(simple[2..].RawText, Is.EqualTo("llo World"));
-            Assert.That(complex[2..].RawText, Is.EqualTo("llo World"));
-            Assert.That(complex[2..].OffsetInts(), Is.EqualTo(new [] {(0, 2), (2, 0), (4, 3), (7, 0)}));
-            
-            Assert.That(simple[1..8].RawText, Is.EqualTo("ello Wo"));
-            Assert.That(complex[1..8].RawText, Is.EqualTo("ello Wo"));
-            Assert.That(complex[1..8].OffsetInts(), Is.EqualTo(new [] {(0, 1), (1, 2), (3, 0), (5, 3)}));
-            
-            Assert.That(simple[..8].RawText, Is.EqualTo("Hello Wo"));
-            Assert.That(complex[..8].RawText, Is.EqualTo("Hello Wo"));
-            Assert.That(complex[..8].OffsetInts(), Is.EqualTo(new [] {(0, 1), (2, 2), (4, 0), (6, 3)}));
-            
-            Assert.That(simple[..^2].RawText, Is.EqualTo("Hello Wor"));
-            Assert.That(complex[..^2].RawText, Is.EqualTo("Hello Wor"));
-            Assert.That(complex[..^2].OffsetInts(), Is.EqualTo(new [] {(0, 1), (2, 2), (4, 0), (6, 3)}));
-            
-            Assert.That(simple[^8..^2].RawText, Is.EqualTo("lo Wor"));
-            Assert.That(complex[^8..^2].RawText, Is.EqualTo("lo Wor"));
-            Assert.That(complex[^8..^2].OffsetInts(), Is.EqualTo(new [] {(0, 2), (1, 0), (3, 3)}));
-            
-            Assert.That(() => simple[^20..], Throws.TypeOf<IndexOutOfRangeException>());
-            Assert.That(() => complex[^20..], Throws.TypeOf<IndexOutOfRangeException>());
-            
-            Assert.That(() => simple[..20], Throws.TypeOf<IndexOutOfRangeException>());
-            Assert.That(() => complex[..20], Throws.TypeOf<IndexOutOfRangeException>());
-            
-            Assert.That(() => simple[2..1], Throws.ArgumentException);
-            Assert.That(() => simple[2..1], Throws.ArgumentException);
+                public int GetHashCode(TestStruct obj)
+                {
+                    return obj.Test;
+                }
+            }
 
-        });
+            public static IEqualityComparer<TestStruct> TestComparer { get; } = new TestEqualityComparer();
+
+            public int Test;
+        };
+        
+        
+        [Test] public void Simple_Equal() => Assert.That(Simple1, Is.EqualTo(Simple2));
+        [Test] public void Simple_Different_Meta_Not_Equal() => Assert.That(Simple1, Is.Not.EqualTo(SimpleD1));
+        [Test] public void Simple_Different_Text_Not_Equal() => Assert.That(Simple1, Is.Not.EqualTo(SimpleD2));
+            
+        [Test] public void Complex_Equal() => Assert.That(Complex1, Is.EqualTo(Complex2));
+        [Test] public void Complex_Different_Meta_Not_Equal() => Assert.That(Complex1, Is.Not.EqualTo(ComplexD1));
+        [Test] public void Complex_Different_Text_Not_Equal() => Assert.That(Complex1, Is.Not.EqualTo(ComplexD2));
+            
+        [Test] public void Custom_Comparer_Equal() => Assert.That(Custom1, Is.EqualTo(Custom2));
+        [Test] public void Custom_Compare_Not_Equal() => Assert.That(Custom1, Is.Not.EqualTo(Custom3));
     }
 
-    [Test]
-    public void Pad()
+    public class Range
     {
-        var cs = "Hello".Meta(0);
-        var cs2 = "Hello".Meta(1) + " " + "World".Meta(2);
+        public readonly MetaString<int> Simple = "Hello World".Meta(0);
+        public readonly MetaString<int> Complex = "He".Meta(1) + "ll".Meta(2) + "o " + "Wor".Meta(3) + "ld";
         
-        Assert.Multiple(() =>
-        {
-            Assert.That(cs.PadLeft(5).RawText, Is.EqualTo("Hello"));
-            Assert.That(cs.PadRight(5).RawText, Is.EqualTo("Hello"));
-            
-            Assert.That(cs.PadLeft(10).RawText, Is.EqualTo("     Hello"));
-            Assert.That(cs.PadRight(10).RawText, Is.EqualTo("Hello     "));
-            
-            Assert.That(cs.PadLeft('_', 10).RawText, Is.EqualTo("_____Hello"));
-            Assert.That(cs.PadRight('_', 10).RawText, Is.EqualTo("Hello_____"));
-            
-            Assert.That(cs2.PadLeft(10).RawText, Is.EqualTo("Hello World"));
-            Assert.That(cs2.PadLeft(10).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2) }));
-            Assert.That(cs2.PadRight(10).RawText, Is.EqualTo("Hello World"));
-            Assert.That(cs2.PadRight(10).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2) }));
-            
-            Assert.That(cs2.PadLeft(20).RawText, Is.EqualTo("         Hello World"));
-            Assert.That(cs2.PadLeft(20).OffsetInts(), Is.EqualTo(new [] { (0, 0), (9, 1), (14, 0), (15, 2) }));
-            Assert.That(cs2.PadRight(20).RawText, Is.EqualTo("Hello World         "));
-            Assert.That(cs2.PadRight(20).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2), (11, 0) }));
-            
-            Assert.That(cs2.PadLeft('_', 20).RawText, Is.EqualTo("_________Hello World"));
-            Assert.That(cs2.PadLeft('_', 20).OffsetInts(), Is.EqualTo(new [] { (0, 0), (9, 1), (14, 0), (15, 2) }));
-            Assert.That(cs2.PadRight('_', 20).RawText, Is.EqualTo("Hello World_________"));
-            Assert.That(cs2.PadRight('_', 20).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2), (11, 0) }));
-        });
+        [Test] public void Simple_Start_Offset_Text() => Assert.That(Simple[2..].RawText, Is.EqualTo("llo World"));
+        [Test] public void Complex_Start_Offset_Text() => Assert.That(Complex[2..].RawText, Is.EqualTo("llo World"));
+        [Test] public void Complex_Start_Offset_Meta() => Assert.That(Complex[2..].OffsetInts(), Is.EqualTo(new [] {(0, 2), (2, 0), (4, 3), (7, 0)}));
+        
+        [Test] public void Simple_StartEnd_Offset_Text() => Assert.That(Simple[1..8].RawText, Is.EqualTo("ello Wo"));
+        [Test] public void Complex_StartEnd_Offset_Text() => Assert.That(Complex[1..8].RawText, Is.EqualTo("ello Wo"));
+        [Test] public void Complex_StartEnd_Offset_Meta() => Assert.That(Complex[1..8].OffsetInts(), Is.EqualTo(new [] {(0, 1), (1, 2), (3, 0), (5, 3)}));
+
+        [Test] public void Simple_End_Offset_Text() => Assert.That(Simple[..8].RawText, Is.EqualTo("Hello Wo"));
+        [Test] public void Complex_End_Offset_Text() => Assert.That(Complex[..8].RawText, Is.EqualTo("Hello Wo"));
+        [Test] public void Complex_End_Offset_Meta() => Assert.That(Complex[..8].OffsetInts(), Is.EqualTo(new [] {(0, 1), (2, 2), (4, 0), (6, 3)}));
+
+        [Test] public void Simple_FromEnd_End_Offset_Text() => Assert.That(Simple[..^2].RawText, Is.EqualTo("Hello Wor"));
+        [Test] public void Complex_FromEnd_End_Offset_Text() => Assert.That(Complex[..^2].RawText, Is.EqualTo("Hello Wor"));
+        [Test] public void Complex_FromEnd_End_Offset_Meta() => Assert.That(Complex[..^2].OffsetInts(), Is.EqualTo(new [] {(0, 1), (2, 2), (4, 0), (6, 3)}));
+        
+        [Test] public void Simple_FromEnd_StartEnd_Offset_Text() => Assert.That(Simple[^8..^2].RawText, Is.EqualTo("lo Wor"));
+        [Test] public void Complex_FromEnd_StartEnd_Offset_Text() => Assert.That(Complex[^8..^2].RawText, Is.EqualTo("lo Wor"));
+        [Test] public void Complex_FromEnd_StartEnd_Offset_Meta() => Assert.That(Complex[^8..^2].OffsetInts(), Is.EqualTo(new [] {(0, 2), (1, 0), (3, 3)}));
+
+        [Test] public void Simple_FromEnd_Outside_Range() => Assert.That(() => Simple[^20..], Throws.TypeOf<IndexOutOfRangeException>());
+        [Test] public void Complex_FromEnd_Outside_Range() => Assert.That(() => Complex[^20..], Throws.TypeOf<IndexOutOfRangeException>());
+
+        [Test] public void Simple_Outside_Range() => Assert.That(() => Simple[..20], Throws.TypeOf<IndexOutOfRangeException>());
+        [Test] public void Complex_Outside_Range() => Assert.That(() => Complex[..20], Throws.TypeOf<IndexOutOfRangeException>());
+
+        [Test] public void Simple_InvalidRange() => Assert.That(() => Simple[2..1], Throws.ArgumentException);
+        [Test] public void Complex_InvalidRange() => Assert.That(() => Complex[2..1], Throws.ArgumentException);
+    }
+
+    public class Pad
+    {
+        public readonly MetaString<int> Simple = "Hello".Meta(0);
+        public readonly MetaString<int> Complex = "Hello".Meta(1) + " " + "World".Meta(2);
+        
+        [Test] public void Simple_PadLeft() => Assert.That(Simple.PadLeft(10).RawText, Is.EqualTo("     Hello"));
+        [Test] public void Simple_PadRight() => Assert.That(Simple.PadRight(10).RawText, Is.EqualTo("Hello     "));
+        
+        [Test] public void Simple_PadLeft_Noop() => Assert.That(Simple.PadLeft(5).RawText, Is.EqualTo("Hello"));
+        [Test] public void Simple_PadRight_Noop() => Assert.That(Simple.PadRight(5).RawText, Is.EqualTo("Hello"));
+
+        [Test] public void Simple_PadLeft_AltChar() => Assert.That(Simple.PadLeft('_', 10).RawText, Is.EqualTo("_____Hello"));
+        [Test] public void Simple_PadRight_AltChar() => Assert.That(Simple.PadRight('_', 10).RawText, Is.EqualTo("Hello_____"));
+        
+        [Test] public void Complex_PadLeft_Text() => Assert.That(Complex.PadLeft(20).RawText, Is.EqualTo("         Hello World"));
+        [Test] public void Complex_PadLeft_Meta() => Assert.That(Complex.PadLeft(20).OffsetInts(), Is.EqualTo(new [] { (0, 0), (9, 1), (14, 0), (15, 2) }));
+        [Test] public void Complex_PadRight_Text() => Assert.That(Complex.PadRight(20).RawText, Is.EqualTo("Hello World         "));
+        [Test] public void Complex_PadRight_Meta() => Assert.That(Complex.PadRight(20).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2), (11, 0) }));
+        
+        [Test] public void Complex_PadLeft_Noop_Text() => Assert.That(Complex.PadLeft(10).RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_PadLeft_Noop_Meta() => Assert.That(Complex.PadLeft(10).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2) }));
+        [Test] public void Complex_PadRight_Noop_Text() => Assert.That(Complex.PadRight(10).RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_PadRight_Noop_Meta() => Assert.That(Complex.PadRight(10).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2) }));
+        
+        [Test] public void Complex_PadLeft_AltChar_Text() => Assert.That(Complex.PadLeft('_', 20).RawText, Is.EqualTo("_________Hello World"));
+        [Test] public void Complex_PadLeft_AltChar_Meta() => Assert.That(Complex.PadLeft('_', 20).OffsetInts(), Is.EqualTo(new [] { (0, 0), (9, 1), (14, 0), (15, 2) }));
+        [Test] public void Complex_PadRight_AltChar_Text() => Assert.That(Complex.PadRight('_', 20).RawText, Is.EqualTo("Hello World_________"));
+        [Test] public void Complex_PadRight_AltChar_Meta() => Assert.That(Complex.PadRight('_', 20).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2), (11, 0) }));
     }
 
     [Test]

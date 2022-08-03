@@ -35,7 +35,6 @@ public class MetaStringGenerator : ISourceGenerator
         
         sb.Append($@"
 namespace {classData.Namespace};
-
 #nullable enable
 public partial class {classData.ClassName} : {classData.BaseClassName}
 {{");
@@ -91,9 +90,16 @@ public partial class {classData.ClassName} : {classData.BaseClassName}
 
         if (classData.Empty)
             sb.Append($@"
-public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaEntry<{classData.MetaType}>>());");
+    public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaEntry<{classData.MetaType}>>());");
 
-        sb.Append("}");
+        sb.Append(@"
+}");
+
+        if (classData.DotMeta)
+            sb.Append($@"
+public static class MetaString_{classData.ClassName}_Generated {{
+    public static {classData.ClassName} Meta(this string str) => {Convert($"str.Meta<{classData.MetaType}>()")};
+}}");
         
         var sourceText = SourceText.From(sb.ToString(), Encoding.UTF8);
         context.AddSource($"{classData.ClassName}.g.cs", sourceText);
@@ -135,6 +141,7 @@ public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaE
         public bool Equality = true;
         public bool Operators = true;
         public bool StringMethods = true;
+        public bool DotMeta = true;
 
         public ClassData(ClassDeclarationSyntax classToAugment)
         {
@@ -175,6 +182,9 @@ public new static {classData.ClassName} Empty {{ get; }} = new(Array.Empty<MetaE
                         break;
                     case "StringMethods":
                         StringMethods = GetBoolValue(attribute);
+                        break;
+                    case "DotMeta":
+                        DotMeta = GetBoolValue(attribute);
                         break;
                 }
             }

@@ -7,6 +7,7 @@ public class MetaStringGeneratorAttribute : Attribute
     public bool Equality { get; set; } = true;
     public bool Operators { get; set; } = true;
     public bool StringMethods { get; set; } = true;
+    public bool DotMeta { get; set; } = true;
     
     public MetaStringGeneratorAttribute(string containedType)
     {
