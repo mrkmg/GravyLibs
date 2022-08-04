@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Gravy.MetaString;
 
 public partial class MetaString<T>

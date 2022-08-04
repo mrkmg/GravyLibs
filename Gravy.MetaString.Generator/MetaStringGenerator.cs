@@ -121,6 +121,7 @@ public static class MetaString_{classData.ClassName}_Generated {{
     }
 
 #if DEBUG
+    // ReSharper disable once UnusedMember.Local
     private static void WaitForDebug()
     {
         Console.Error.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
@@ -155,7 +156,7 @@ public static class MetaString_{classData.ClassName}_Generated {{
             else 
                 Namespace = string.Empty;
             
-            Usings = classToAugment!.SyntaxTree.GetCompilationUnitRoot().Usings.Select(x => x.ToString()).ToArray();
+            Usings = classToAugment.SyntaxTree.GetCompilationUnitRoot().Usings.Select(x => x.ToString()).ToArray();
 
             var attributes = classToAugment.AttributeLists
                 .SelectMany(x => x.Attributes)

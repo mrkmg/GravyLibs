@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Gravy.ConsoleString;
 
+// TODO: move to Gravy.MetaString
 [InterpolatedStringHandler]
 public class ConsoleStringInterpolatedStringHandler
 {
@@ -28,6 +28,7 @@ public class ConsoleStringInterpolatedStringHandler
 
     public void AppendFormatted<T>(T s, string format, IFormatProvider? provider = null)
     {
+        if (s is ConsoleString) throw new InvalidOperationException("Cannot format a ConsoleString");
         if (s is IFormattable f)
         {
             _parts.Add(new(f.ToString(format, provider)));
@@ -52,30 +53,19 @@ public class ConsoleStringInterpolatedStringHandler
     {
         if (o is ConsoleString cs)
         {
-            // _parts.Add(alignment switch
-            // {
-            //     < 0 => cs.PadLeft(-alignment),
-            //     > 0 => cs.PadRight(alignment),
-            //     _ => cs
-            // });
+            if (format is not null) throw new InvalidOperationException("Cannot format a ConsoleString");
+            _parts.Add(alignment switch
+            {
+                < 0 => cs.PadLeft(-alignment),
+                > 0 => cs.PadRight(alignment),
+                _ => cs
+            });
             return;
         }
-
-        string str;
-        if (format is not null && o is IFormattable f)
-            str = f.ToString(format, provider);
-        else
-            str = string.Format(o?.ToString() ?? string.Empty, format, provider);
-
-        // _parts.Add(alignment switch
-        // {
-        //     < 0 => new(str.PadLeft(-alignment)),
-        //     > 0 => new(str.PadRight(alignment)),
-        //     _ => new(str)
-        // });
+        AppendFormatted(o?.ToString() ?? string.Empty, alignment, format, provider);
     }
     
-    public ConsoleString ToColoredString() => new(_parts);
+    public ConsoleString ToConsoleString() => new(_parts);
     
     
 }

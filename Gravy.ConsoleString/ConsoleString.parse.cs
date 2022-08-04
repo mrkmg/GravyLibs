@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using Gravy.ConsoleString.Parser;
 
@@ -28,6 +27,6 @@ public partial class ConsoleString
     /// <b>[U]</b>        Enable Underline.<br />
     /// <b>[/U]</b>       Disable Underline.<br />
     /// </remarks>
-    public static ConsoleString Parse(string str)
-        => new ConsoleStringTagsParser(str).Parse();
+    public static ConsoleString Parse(string str) 
+        => ConsoleStringAssembler.Assemble(ConsoleStringTagsTokenizer.Tokenize(str));
 }

@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Data;
-using System.Drawing;
-using System.Reflection;
-using Gravy.MetaString;
+﻿using System.Drawing;
 
 namespace Gravy.ConsoleString.Test;
 

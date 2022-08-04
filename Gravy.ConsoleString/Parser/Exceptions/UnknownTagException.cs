@@ -1,5 +1,3 @@
-using System;
-
 namespace Gravy.ConsoleString.Parser;
 
 public class UnknownTagException : ParserException

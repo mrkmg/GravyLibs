@@ -9,14 +9,14 @@ using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
 
-[DebuggerDisplay("{ToTaggedString()}")]
+[DebuggerDisplay("{DebugView}")]
 [MetaStringGenerator(nameof(ConsoleFormat))]
 public partial class ConsoleString : ICloneable
 {
     public static void EnableWindowsSupport()
         => WindowsConsole.TryEnableVirtualTerminalProcessing();
 
-    public ConsoleString(ConsoleStringInterpolatedStringHandler handler) : base(handler.ToColoredString().MetaEntries) { }
+    public ConsoleString(ConsoleStringInterpolatedStringHandler handler) : base(handler.ToConsoleString().MetaEntries) { }
 
     public ConsoleString(string text, Color? foregroundColor = null, Color? backgroundColor = null, FontStyle style = FontStyle.None)
         : this(text, new(foregroundColor, backgroundColor, style)) { }
@@ -165,10 +165,13 @@ public partial class ConsoleString : ICloneable
 
     public ConsoleString Optimize()
         => new(Optimize(MetaEntries));
-    
+
     public static implicit operator ConsoleString(string str)
         => new(str, default!);
 
+    [DebuggerHidden]
+    private string DebugView => ToTaggedString(true);
+    
     private static PositionedMetaEntry<ConsoleFormat>[] Optimize(PositionedMetaEntry<ConsoleFormat>[] sourceEntries)
     {
         var newEntries = new PositionedMetaEntry<ConsoleFormat>[sourceEntries.Length];
@@ -178,7 +181,7 @@ public partial class ConsoleString : ICloneable
         
         void AddEntry(PositionedMetaEntry<ConsoleFormat> entry)
         {
-            newEntries![targetIdx] = entry.PositionedAt(next);
+            newEntries[targetIdx] = entry.PositionedAt(next);
             next += entry.Text.Length;
             targetIdx++;
         }

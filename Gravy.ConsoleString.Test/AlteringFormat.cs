@@ -6,7 +6,6 @@ public class AlteringFormat
 {
     private static readonly Color Red = Color.Red;
     private static readonly Color Blue = Color.Blue;
-    private static Color Green = Color.Green;
 
     [Test]
     public void ChangeForeground()
