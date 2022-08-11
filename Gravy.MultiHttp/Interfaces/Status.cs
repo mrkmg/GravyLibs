@@ -2,8 +2,8 @@
 
 public enum Status
 {
-    Errored,
-    Waiting,
-    InProgress,
-    Complete
+    Errored = -1,
+    Waiting = 0,
+    InProgress = 1,
+    Complete = 2,
 }

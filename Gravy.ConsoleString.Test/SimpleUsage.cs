@@ -28,7 +28,7 @@ public class SimpleUsage
     [Test]
     public void ComplexString()
     { 
-        var cs = new ConsoleString("Test", Red, Blue, FontStyle.Bold | FontStyle.Italic);
+        var cs = new ConsoleString("Test", Red, Blue, FontWeight.Bold, FontStyle.Italic);
         Assert.That(cs.ToString(), Is.EqualTo("\x1b[48;2;0;0;255m\x1b[38;2;255;0;0m\x1b[1m\x1b[3mTest\x1b[0m"));
     }
 
@@ -56,24 +56,53 @@ public class SimpleUsage
     }
 
     [Test]
-    public void StyleBold()
+    public void WeightBold()
     {
-        var cs = new ConsoleString("Test", null, null, FontStyle.Bold);
+        var cs = new ConsoleString("Test", null, null, FontWeight.Bold);
         Assert.That(cs.ToString(), Is.EqualTo("\x1b[1mTest\x1b[0m"));
+        
+    }
+
+    [Test]
+    public void WeightLight()
+    {
+        var cs = new ConsoleString("Test", null, null, FontWeight.Light);
+        Assert.That(cs.ToString(), Is.EqualTo("\x1b[2mTest\x1b[0m"));
         
     }
     
     [Test]
     public void StyleItalic()
     {
-        var cs = new ConsoleString("Test", null, null, FontStyle.Italic);
+        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.Italic);
         Assert.That(cs.ToString(), Is.EqualTo("\x1b[3mTest\x1b[0m"));
     }
     
     [Test]
     public void StyleUnderline()
     {
-        var cs = new ConsoleString("Test", null, null, FontStyle.Underline);
+        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.Underline);
         Assert.That(cs.ToString(), Is.EqualTo("\x1b[4mTest\x1b[0m"));
+    }
+    
+    [Test]
+    public void StyleBlink()
+    {
+        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.Blink);
+        Assert.That(cs.ToString(), Is.EqualTo("\x1b[5mTest\x1b[0m"));
+    }
+    
+    [Test]
+    public void StyleInverse()
+    {
+        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.Inverse);
+        Assert.That(cs.ToString(), Is.EqualTo("\x1b[7mTest\x1b[0m"));
+    }
+    
+    [Test]
+    public void StyleStrikeThrough()
+    {
+        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.StrikeThrough);
+        Assert.That(cs.ToString(), Is.EqualTo("\x1b[9mTest\x1b[0m"));
     }
 }

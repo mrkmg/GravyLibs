@@ -4,6 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <PackageVersion>0.2.0</PackageVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -26,9 +27,7 @@
     </PropertyGroup>
 
     <Target Name="CopyNuget" AfterTargets="Pack">
-        <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg"
-              DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg"
-              OverwriteReadOnlyFiles="true" />
+        <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
     </Target>
 
     <ItemGroup>

@@ -72,5 +72,5 @@ public partial class MetaString<T>
     }
     
     public static implicit operator MetaString<T>(string str)
-        => new(str, default!);
+        => new(str, default(T)!);
 }

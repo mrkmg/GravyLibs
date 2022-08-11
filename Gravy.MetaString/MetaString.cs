@@ -5,9 +5,10 @@ namespace Gravy.MetaString;
 [DebuggerDisplay("{DebuggerDisplay}")]
 public partial class MetaString<T>
 {
-    public PositionedMetaEntry<T>[] MetaEntries { get; }
-    public string RawText => string.Join(null, MetaEntries.Select(e => e.Text));
+    protected PositionedMetaEntry<T>[] MetaEntries { get; }
     
+    public string RawText => string.Join(null, MetaEntries.Select(e => e.Text));
+    public IEnumerable<PositionedMetaEntry<T>> MetaData => MetaEntries;
     public MetaString(string text)
     {
         MetaEntries = new [] { new PositionedMetaEntry<T>(0, text, default) };
@@ -18,26 +19,22 @@ public partial class MetaString<T>
         MetaEntries = new [] { new PositionedMetaEntry<T>(0, text, metaData) };
     }
 
-    protected MetaString(IEnumerable<MetaEntry<T>> entries)
-    {
-        MetaEntries = entries.Positioned().ToArray();
-        CheckPositions();
-    }
+    protected MetaString(IEnumerable<MetaEntry<T>> entries) : this(entries.Positioned()) { }
 
-    protected MetaString(PositionedMetaEntry<T>[] entries)
+    protected MetaString(IEnumerable<PositionedMetaEntry<T>> entries)
     {
-        MetaEntries = entries;
+        MetaEntries = entries.ToArray();
         CheckPositions();
     }
 
     public object Clone()
         => new MetaString<T>(MetaEntries);
 
-    public MetaChar<T> this[int index] => CharAt(index);
+    public MetaChar<T> this[Index index] => CharAt(index);
 
     public virtual MetaString<T> this[Range range] => GetRange(range);
     
-    public MetaChar<T> CharAt(int index)
+    public MetaChar<T> CharAt(Index index)
     {
         var (entryIdx, charInx) = GetIndexes(index);
         var entry = MetaEntries[entryIdx];
@@ -192,8 +189,7 @@ public readonly struct PositionedMetaEntry<T>
     public int Length => Text.Length;
     public Range Range => new(Offset, Offset + Length);
 
-    public MetaEntry<T> WithoutPosition()
-        => new(Text, Data);
+    public MetaEntry<T> WithoutPosition() => new(Text, Data);
 
     public bool Equivalent(PositionedMetaEntry<T> other)
         => Text == other.Text && DataEquals(other);

@@ -12,12 +12,12 @@ public class Tests
         public readonly MetaString<int> IntString2 = new("test", 42);
         public readonly MetaString<string> StringString1 = new("test");
 
-        [Test] public void Constructor_With_DefaultValue_Int_Text() => Assert.That(IntString1.MetaEntries.First().Text, Is.EqualTo("test"));
-        [Test] public void Constructor_With_DefaultValue_Int_Value() => Assert.That(IntString1.MetaEntries.First().Data, Is.EqualTo(0));
-        [Test] public void Constructor_With_DefaultValue_String_Text() => Assert.That(StringString1.MetaEntries.First().Text, Is.EqualTo("test"));
-        [Test] public void Constructor_With_DefaultValue_String_Value() => Assert.That(StringString1.MetaEntries.First().Data, Is.EqualTo(null));
-        [Test] public void Constructor_With_DefinedValue_Int_Text() => Assert.That(IntString2.MetaEntries.First().Text, Is.EqualTo("test"));
-        [Test] public void Constructor_With_DefinedValue_Int_Value() => Assert.That(IntString2.MetaEntries.First().Data, Is.EqualTo(42));
+        [Test] public void Constructor_With_DefaultValue_Int_Text() => Assert.That(IntString1.RawText, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefaultValue_Int_Value() => Assert.That(IntString1.MetaData.First().Data, Is.EqualTo(0));
+        [Test] public void Constructor_With_DefaultValue_String_Text() => Assert.That(StringString1.RawText, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefaultValue_String_Value() => Assert.That(StringString1.MetaData.First().Data, Is.EqualTo(null));
+        [Test] public void Constructor_With_DefinedValue_Int_Text() => Assert.That(IntString2.RawText, Is.EqualTo("test"));
+        [Test] public void Constructor_With_DefinedValue_Int_Value() => Assert.That(IntString2.MetaData.First().Data, Is.EqualTo(42));
     }
 
     public class Equality
@@ -140,33 +140,28 @@ public class Tests
         [Test] public void Complex_PadRight_AltChar_Meta() => Assert.That(Complex.PadRight('_', 20).OffsetInts(), Is.EqualTo(new [] { (0, 1), (5, 0), (6, 2), (11, 0) }));
     }
 
-    [Test]
-    public void Trim()
+    public class Trim
     {
-        var simple1 = "   Hello World   ".Meta(0);
-        var simple2 = "___Hello World___".Meta(0);
-        var simple3 = "-_-Hello World-_-".Meta(0);
-        var complex1 = "   Hello".Meta(1) + " " + "World   ".Meta(2);
-        var complex2 = "___Hello".Meta(1) + " " + "World___".Meta(2);
-        var complex3 = "-_-Hello".Meta(1) + " " + "World-_-".Meta(2);
-        var fullRemove1 = " ".Meta(1) + " ".Meta(2) +
+        public MetaString<int> SimpleWithWhiteSpace = "   Hello World   ".Meta(0);
+        public MetaString<int> SimpleWithOneAltChar = "___Hello World___".Meta(0);
+        public MetaString<int> SimpleWithMultipleAltChars = "-_-Hello World-_-".Meta(0);
+        public MetaString<int> ComplexWithWhiteSpace = "   Hello".Meta(1) + " " + "World   ".Meta(2);
+        public MetaString<int> ComplexWithOneAltChar = "___Hello".Meta(1) + " " + "World___".Meta(2);
+        public MetaString<int> ComplexWithMultipleAltChars = "-_-Hello".Meta(1) + " " + "World-_-".Meta(2);
+        public MetaString<int> ComplexWithFullyRemovedMeta = " ".Meta(1) + " ".Meta(2) +
                           "Hello World" +
                           " ".Meta(3) + " ".Meta(4);
         
-        Assert.Multiple(() =>
-        {
-            Assert.That(MetaString<int>.Empty.Trim().RawText, Is.EqualTo(string.Empty));
-            
-            Assert.That(simple1.Trim().RawText, Is.EqualTo("Hello World"));
-            Assert.That(simple2.Trim('_').RawText, Is.EqualTo("Hello World"));
-            Assert.That(simple3.Trim('-','_').RawText, Is.EqualTo("Hello World"));
-            
-            Assert.That(complex1.Trim().RawText, Is.EqualTo("Hello World"));
-            Assert.That(complex2.Trim('_').RawText, Is.EqualTo("Hello World"));
-            Assert.That(complex3.Trim('-','_').RawText, Is.EqualTo("Hello World"));
-            
-            Assert.That(fullRemove1.Trim().RawText, Is.EqualTo("Hello World"));
-        });
+        [Test] public void Empty() 
+            => Assert.That(MetaString<int>.Empty.Trim().RawText, Is.EqualTo(string.Empty));
+        
+        [Test] public void Simple_With_White_Space() => Assert.That(SimpleWithWhiteSpace.Trim().RawText, Is.EqualTo("Hello World"));
+        [Test] public void Simple_With_One_Alt_Char() => Assert.That(SimpleWithOneAltChar.Trim('_').RawText, Is.EqualTo("Hello World"));
+        [Test] public void Simple_With_Multiple_Alt_Chars() => Assert.That(SimpleWithMultipleAltChars.Trim('_', '-').RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_With_White_Space() => Assert.That(ComplexWithWhiteSpace.Trim().RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_With_One_Alt_Char() => Assert.That(ComplexWithOneAltChar.Trim('_').RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_With_Multiple_Alt_Chars() => Assert.That(ComplexWithMultipleAltChars.Trim('_','-').RawText, Is.EqualTo("Hello World"));
+        [Test] public void Complex_With_Fully_Removed_Meta() => Assert.That(ComplexWithFullyRemovedMeta.Trim().RawText, Is.EqualTo("Hello World"));
     }
 
     [Test]

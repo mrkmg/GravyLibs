@@ -18,21 +18,22 @@ public partial class ConsoleString : ICloneable
 
     public ConsoleString(ConsoleStringInterpolatedStringHandler handler) : base(handler.ToConsoleString().MetaEntries) { }
 
-    public ConsoleString(string text, Color? foregroundColor = null, Color? backgroundColor = null, FontStyle style = FontStyle.None)
-        : this(text, new(foregroundColor, backgroundColor, style)) { }
+    public ConsoleString(string text, Color? foregroundColor = null, Color? backgroundColor = null, FontWeight weight = FontWeight.Normal, FontStyle style = FontStyle.None)
+        : this(text, new(foregroundColor, backgroundColor, weight, style)) { }
 
     public ConsoleString(string str) : base(str, ConsoleFormat.Default) { }
     public ConsoleString(string text, ConsoleFormat format) : base(text, format) { }
     public ConsoleString(IEnumerable<MetaEntry<ConsoleFormat>> entries) : base(entries) { }
-
-    internal ConsoleString(PositionedMetaEntry<ConsoleFormat>[] metaEntries) : base(metaEntries) { }
+    
+    internal ConsoleString(IEnumerable<PositionedMetaEntry<ConsoleFormat>> entries) : this(entries.ToArray()) { }
+    internal ConsoleString(PositionedMetaEntry<ConsoleFormat>[] metaEntries) : base(Optimize(metaEntries)) { }
     internal ConsoleString(IEnumerable<ConsoleString> consoleStrings) : base(consoleStrings.SelectMany(cs => cs.MetaEntries).ToArray()) { }
 
     public ConsoleString With(ConsoleFormat format)
         => new(RawText, format);
 
-    public ConsoleString With(Color? foreground, Color? background, FontStyle style)
-        => With(new(foreground, background, style));
+    public ConsoleString With(Color? foreground, Color? background, FontWeight weight, FontStyle style)
+        => With(new(foreground, background, weight, style));
 
     public ConsoleString WithForeground(Color? color)
         => new(MetaEntries.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithForeground(color))));
@@ -44,122 +45,194 @@ public partial class ConsoleString : ICloneable
     public ConsoleString WithoutStyle(FontStyle style)
         => new(MetaEntries.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithoutStyle(style))));
     
+    public ConsoleString WithWeight(FontWeight weight)
+        => new(MetaEntries.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithWeight(weight))));
+    
     public ConsoleString ResetStyle()
         => new(MetaEntries.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.ResetStyle())));
     
-    public ConsoleString WithBold() => WithStyle(FontStyle.Bold);
+    public ConsoleString WithNormal() => WithWeight(FontWeight.Normal);
+    public ConsoleString WithBold() => WithWeight(FontWeight.Bold);
+    public ConsoleString WithLight() => WithWeight(FontWeight.Light);
+    
     public ConsoleString WithItalic() => WithStyle(FontStyle.Italic);
-    public ConsoleString WithUnderline() => WithStyle(FontStyle.Underline);
-    public ConsoleString WithoutBold() => WithoutStyle(FontStyle.Bold);
     public ConsoleString WithoutItalic() => WithoutStyle(FontStyle.Italic);
+    
+    public ConsoleString WithUnderline() => WithStyle(FontStyle.Underline);
     public ConsoleString WithoutUnderline() => WithoutStyle(FontStyle.Underline);
     
-    public override string ToString() => ToEscapedString();
+    public ConsoleString WithBlink() => WithStyle(FontStyle.Blink);
+    public ConsoleString WithoutBlink() => WithoutStyle(FontStyle.Blink);
+    
+    public ConsoleString WithInverse() => WithStyle(FontStyle.Inverse);
+    public ConsoleString WithoutInverse() => WithoutStyle(FontStyle.Inverse);
+    
+    public ConsoleString WithStrikeThrough() => WithStyle(FontStyle.StrikeThrough);
+    public ConsoleString WithoutStrikeThrough() => WithoutStyle(FontStyle.StrikeThrough);
+    
+    public override string ToString() => ToAnsiString();
     
     public string ToTaggedString(bool useReset = false)
     {
         if (MetaEntries.Length == 0)
             return string.Empty;
 
-        var currentFormat = ConsoleFormat.Default;
-        var sb = new StringBuilder();
-
-        void WriteFormatDiff(ConsoleFormat format)
+        void WriteFormatDiff(StringBuilder sb, ConsoleFormat fromFormat, ConsoleFormat toFormat)
         {
-            if (useReset && format.Equals(ConsoleFormat.Default) && !currentFormat.Equals(ConsoleFormat.Default))
+            if (useReset && toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
             {
                 sb.Append("[//]");
                 return;
             }
             
-            if (format.BackgroundColor != currentFormat.BackgroundColor)
+            if (toFormat.BackgroundColor != fromFormat.BackgroundColor)
             {
-                if (format.BackgroundColor.HasValue)
-                    sb.Append($@"[G{format.BackgroundColor.Value.ToCsColor()}]");
+                if (toFormat.BackgroundColor.HasValue)
+                    sb.Append($@"[G{toFormat.BackgroundColor.Value.ToCsColor()}]");
                 else
                     sb.Append(@"[/G]");
             }
-            if (format.ForegroundColor != currentFormat.ForegroundColor)
+            if (toFormat.ForegroundColor != fromFormat.ForegroundColor)
             {
-                if (format.ForegroundColor.HasValue)
-                    sb.Append($@"[F{format.ForegroundColor.Value.ToCsColor()}]");
+                if (toFormat.ForegroundColor.HasValue)
+                    sb.Append($@"[F{toFormat.ForegroundColor.Value.ToCsColor()}]");
                 else
                     sb.Append(@"[/F]");
             }
             
-            if (format.Styles.Equals(currentFormat.Styles)) return;
-            
-            if (!currentFormat.Styles.HasFlag(FontStyle.Bold) && format.Styles.HasFlag(FontStyle.Bold))
-                sb.Append(@"[B]");
-            if (currentFormat.Styles.HasFlag(FontStyle.Bold) && !format.Styles.HasFlag(FontStyle.Bold))
-                sb.Append(@"[/B]");
+            if (fromFormat.Weight != toFormat.Weight)
+            {
+                if (fromFormat.Weight == FontWeight.Bold)
+                    sb.Append(@"[/B]");
+                if (fromFormat.Weight == FontWeight.Light)
+                    sb.Append(@"[/L]");
                 
-            if (!currentFormat.Styles.HasFlag(FontStyle.Italic) && format.Styles.HasFlag(FontStyle.Italic))
+                if (toFormat.Weight == FontWeight.Bold)
+                    sb.Append(@"[B]");
+                if (toFormat.Weight == FontWeight.Light)
+                    sb.Append(@"[L]");
+            }
+
+            if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
                 sb.Append("[I]");
-            if (currentFormat.Styles.HasFlag(FontStyle.Italic) && !format.Styles.HasFlag(FontStyle.Italic))
+            if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
                 sb.Append("[/I]");
                 
-            if (!currentFormat.Styles.HasFlag(FontStyle.Underline) && format.Styles.HasFlag(FontStyle.Underline))
+            if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
                 sb.Append("[U]");
-            if (currentFormat.Styles.HasFlag(FontStyle.Underline) && !format.Styles.HasFlag(FontStyle.Underline))
+            if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
                 sb.Append("[/U]");
-        } 
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
+                sb.Append("[K]");
+            if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
+                sb.Append("[/K]");
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
+                sb.Append("[V]");
+            if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
+                sb.Append("[/V]");
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+                sb.Append("[T]");
+            if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+                sb.Append("[/T]");
+        }
         
-        foreach (var entry in Optimize().MetaEntries)
+        var currentFormat = ConsoleFormat.Default;
+        var sb = new StringBuilder();
+        foreach (var entry in MetaEntries)
         {
-            WriteFormatDiff(entry.Data);
+            WriteFormatDiff(sb, currentFormat, entry.Data);
             sb.Append(entry.Text);
             currentFormat = entry.Data;
         }
-        WriteFormatDiff(ConsoleFormat.Default);
+        WriteFormatDiff(sb, currentFormat, ConsoleFormat.Default);
         return sb.ToString();
     }
     
-    public string ToEscapedString()
+    public string ToAnsiString()
     {
         if (MetaEntries.Length == 0)
             return string.Empty;
-        
-        var sb = new StringBuilder();
-        var currentFormat = new ConsoleFormat();
-        foreach (var entry in Optimize().MetaEntries)
+
+        void WriteFormatDiff(StringBuilder sb, ConsoleFormat fromFormat, ConsoleFormat toFormat)
         {
-            if (entry.Data.Equals(ConsoleFormat.Default) && !currentFormat.Equals(ConsoleFormat.Default))
+            if (toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
             {
                 sb.SetMode(Mode.Reset);
-                currentFormat = entry.Data;
+                return;
             }
-            
-            if (!ColorsEquivalent(entry.Data.BackgroundColor, currentFormat.BackgroundColor))
+
+            if (!AreColorsEquivalent(toFormat.BackgroundColor, fromFormat.BackgroundColor))
             {
-                if (entry.Data.BackgroundColor.HasValue)
-                    sb.SetBackgroundColor(entry.Data.BackgroundColor.Value.ToAnsi());
+                if (toFormat.BackgroundColor.HasValue)
+                    sb.SetBackgroundColor(toFormat.BackgroundColor.Value.ToAnsi());
                 else
                     sb.SetMode(Mode.BackgroundDefault);
             }
-            if (!ColorsEquivalent(entry.Data.ForegroundColor, currentFormat.ForegroundColor))
+            
+            if (!AreColorsEquivalent(toFormat.ForegroundColor, fromFormat.ForegroundColor))
             {
-                if (entry.Data.ForegroundColor.HasValue)
-                    sb.SetForegroundColor(entry.Data.ForegroundColor.Value.ToAnsi());
+                if (toFormat.ForegroundColor.HasValue)
+                    sb.SetForegroundColor(toFormat.ForegroundColor.Value.ToAnsi());
                 else
                     sb.SetMode(Mode.ForegroundDefault);
             }
-            if (entry.Data.Styles != currentFormat.Styles)
+            
+            switch (toFormat.Weight)
             {
-                if (currentFormat.Styles != FontStyle.None)
+                case FontWeight.Normal when fromFormat.Weight != FontWeight.Normal:
                     sb.SetMode(Mode.Normal);
-                if (entry.Data.Styles.HasFlag(FontStyle.Bold))
+                    break;
+                case FontWeight.Bold when fromFormat.Weight != FontWeight.Bold:
                     sb.SetMode(Mode.Bold);
-                if (entry.Data.Styles.HasFlag(FontStyle.Italic))
-                    sb.SetMode(Mode.Italic);
-                if (entry.Data.Styles.HasFlag(FontStyle.Underline))
-                    sb.SetMode(Mode.Underline);
+                    break;
+                case FontWeight.Light when fromFormat.Weight != FontWeight.Light:
+                    sb.SetMode(Mode.Faint);
+                    break;
             }
+
+            var modes = new List<int>();
+
+            if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
+                modes.Add((int)Mode.Italic);
+            if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
+                modes.Add((int)Mode.NoItalic);
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
+                modes.Add((int)Mode.Underline);
+            if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
+                modes.Add((int)Mode.NoUnderline);
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
+                modes.Add((int)Mode.Blink);
+            if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
+                modes.Add((int)Mode.NoBlink);
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
+                modes.Add((int)Mode.Inverse);
+            if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
+                modes.Add((int)Mode.NoInverse);
+                
+            if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+                modes.Add(9); // ANSI package does not have a strike through mode
+            if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+                modes.Add(29); // ANSI package does not have a strike through mode
+
+            if (modes.Count > 0)
+                sb.SetMode(modes.Select(x => (Mode)x).ToArray());
+        } 
+        
+        var currentFormat = ConsoleFormat.Default;
+        var sb = new StringBuilder();
+        foreach (var entry in MetaEntries)
+        {
+            WriteFormatDiff(sb, currentFormat, entry.Data);
             sb.Append(entry.Text);
             currentFormat = entry.Data;
         }
-        if (!currentFormat.Equals(ConsoleFormat.Default))
-            sb.SetMode(Mode.Reset);
+        WriteFormatDiff(sb, currentFormat, ConsoleFormat.Default);
         return sb.ToString();
     }
 
@@ -170,7 +243,7 @@ public partial class ConsoleString : ICloneable
         => new(str, default!);
 
     [DebuggerHidden]
-    private string DebugView => ToTaggedString(true);
+    private string DebugView => ToTaggedString();
     
     private static PositionedMetaEntry<ConsoleFormat>[] Optimize(PositionedMetaEntry<ConsoleFormat>[] sourceEntries)
     {
@@ -204,7 +277,7 @@ public partial class ConsoleString : ICloneable
                 n++;
             if (n - 1 > sourceIdx)
             {
-                var str = string.Join(null, sourceEntries[sourceIdx..n].Select(e => e.Text));
+                var str = string.Join(null, sourceEntries.Skip(sourceIdx).Take(n - sourceIdx).Select(e => e.Text));
                 AddEntry(new (next, str, sourceEntries[sourceIdx].Data));
                 sourceIdx = n;
             }
@@ -218,7 +291,7 @@ public partial class ConsoleString : ICloneable
         return newEntries[..targetIdx];
     }
 
-    private static bool ColorsEquivalent(Color? color1, Color? color2)
-        => color1 is null && color2 is null || (color1 is not null && color2 is not null && color1.Value.ToArgb() == color2.Value.ToArgb()); 
+    private static bool AreColorsEquivalent(Color? color1, Color? color2)
+        => (color1 is null && color2 is null) || (color1 is not null && color2 is not null && color1.Value.ToArgb() == color2.Value.ToArgb()); 
 
 }

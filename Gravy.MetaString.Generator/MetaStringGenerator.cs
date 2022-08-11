@@ -24,7 +24,7 @@ public class MetaStringGenerator : ISourceGenerator
             return;
 
         string Convert(string inner)
-            => $"(new {classData.ClassName}(({inner}).MetaEntries))";
+            => $"(new {classData.ClassName}(({inner}).MetaData))";
         
         var sb = new StringBuilder();
 
@@ -134,16 +134,16 @@ public static class MetaString_{classData.ClassName}_Generated {{
     
     private class ClassData
     {
-        public string ClassName;
-        public string BaseClassName;
-        public string Namespace;
-        public string[] Usings;
-        public string MetaType;
-        public bool Empty = true;
-        public bool Equality = true;
-        public bool Operators = true;
-        public bool StringMethods = true;
-        public bool DotMeta = true;
+        public readonly string ClassName;
+        public readonly string BaseClassName;
+        public readonly string Namespace;
+        public readonly string[] Usings;
+        public readonly string MetaType;
+        public readonly bool Empty = true;
+        public readonly bool Equality = true;
+        public readonly bool Operators = true;
+        public readonly bool StringMethods = true;
+        public readonly bool DotMeta = true;
 
         public ClassData(ClassDeclarationSyntax classToAugment)
         {
@@ -151,7 +151,7 @@ public static class MetaString_{classData.ClassName}_Generated {{
 
             if (TryGetParentSyntax<NamespaceDeclarationSyntax>(classToAugment, out var nsTag))
                 Namespace = nsTag!.Name.ToString();
-            if (TryGetParentSyntax<FileScopedNamespaceDeclarationSyntax>(classToAugment, out var fsTag))
+            else if (TryGetParentSyntax<FileScopedNamespaceDeclarationSyntax>(classToAugment, out var fsTag))
                 Namespace = fsTag!.Name.ToString();
             else 
                 Namespace = string.Empty;
