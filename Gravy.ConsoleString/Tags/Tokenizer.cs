@@ -251,7 +251,6 @@ internal class Tokenizer
             'K' => TokenizerState.StartBlink,
             'V' => TokenizerState.StartInverse,
             'T' => TokenizerState.StartStrikeThrough,
-            '/' => TokenizerState.ParseStopTag,
             _ => throw new UnknownTagException(Char, TokenStartLine, TokenStartColumn)
         };
     }
@@ -289,6 +288,8 @@ internal class Tokenizer
         {
             closeBracketIndex = SourceText.IndexOf(']', Index);
         } catch (ArgumentOutOfRangeException) { throw new UnexpectedEndOfStringException(TokenStartLine, TokenStartColumn); }
+        if (closeBracketIndex == -1)
+            throw new UnexpectedEndOfStringException(TokenStartLine, TokenStartColumn);
         return closeBracketIndex;
     }
 

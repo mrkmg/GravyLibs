@@ -85,23 +85,27 @@ internal class Assembler
                         throw new UnmatchedStopTokenException(token.Line, token.Column);
                     FontStyleCounts[styleStopToken.Value].TryPop(out _);
                     break;
-                case Token.ResetAllToken when StrictMode:
-                    throw new ResetAllInStrictModeException(token.Line, token.Column);
-                case Token.ResetAllToken: 
+                case Token.ResetAllToken:
+                    // No reset in strict mode.
+                    if (StrictMode)
+                        throw new ResetAllInStrictModeException(token.Line, token.Column);
                     BackgroundStack.Clear();
                     ForegroundStack.Clear();
                     WeightStack.Clear();
-                    FontStyleCounts[FontStyle.Italic].Clear();
-                    FontStyleCounts[FontStyle.Underline].Clear();
+                    foreach (var style in Enum.GetValues<FontStyle>())
+                        FontStyleCounts[style].Clear();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException($"Unknown Token type: {token.GetType().Name}");
             }
         }
 
-        if (!StrictMode) yield break;
-        // Strict mode requires all tokens to be closed.
-        
+        if (StrictMode)
+            EnsureAllTokensClosed();
+    }
+
+    private void EnsureAllTokensClosed()
+    {
         if (ForegroundStack.Count > 0)
         {
             var token = ForegroundStack.Peek();
@@ -120,14 +124,15 @@ internal class Assembler
             throw new UnmatchedStartTokenException(token.Line, token.Column);
         }
 
-        var StyleTokens = FontStyleCounts.Values.SelectMany(x => x).ToList();
-        if (StyleTokens.Count > 0)
+        foreach (var value in Enum.GetValues<FontStyle>())
         {
-            var token = StyleTokens[0];
+            if (FontStyleCounts[value].Count == 0) continue;
+            
+            var token = FontStyleCounts[value].Peek();
             throw new UnmatchedStartTokenException(token.Line, token.Column);
         }
     }
-    
+
     public static ConsoleString Assemble(IEnumerable<Token> tokens, bool strict = false) 
         => new(new Assembler(strict).AssembleToEntries(tokens));
 }

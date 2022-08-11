@@ -14,105 +14,106 @@ public class Tags
 
     public class Compiler
     {
-        public const string TaggedStringWithNoTags = "This\n is\r\n a simple\r string";
-        public const string TaggedStringWithReset = "This\n is\r\n a sim[//]ple\r string";
-        public const string TaggedStringUnfinishedTag = "[B]Test[/B";
-        public const string TaggedStringWithEscapedCharacters = @"This is a string with escaped characters: \\ \[";
-        public const string TaggedStringWithInvalidHexColorLength = @"[F#FF]Test[/F]";
-        public const string TaggedStringWithInvalidHexColorLetters = @"[F#FFFFGG]Test[/F]";
-        public const string TaggedStringWithUnknownColorName = @"[F!Funky]Test[/F]";
-        public const string TaggedStringWithAllTags = @"[B]Bold[/B] [L]Light[/L] [I]Italic[/I] [U]Underline[/U] [T]StrikeThrough[/T] [K]Blink[/K] [V]Inverse[/V] [F!Red]Foreground[/F] [G#00FF00]Background[/G] [B][I][U][F!Red][G#00FF00]All[//] None";
-        public const string TaggedStringWithUnmatchedStyleStartTag = @"[B]Test";
-        public const string TaggedStringWithUnmatchedForegroundStartTag = @"[F!Red]Test";
-        public const string TaggedStringWithUnmatchedBackgroundStartTag = @"[G!Red]Test";
-        public const string TaggedStringWithUnmatchedStyleEndTag = @"Test[/B]";
-        public const string TaggedStringWithUnmatchedForegroundEndTag = @"Test[/F]";
-        public const string TaggedStringWithUnmatchedBackgroundEndTag = @"Test[/G]";
-        public const string TaggedStringWithDuplicateWeightTags = @"[B][B]Test[/B]Test[/B]";
-        public const string TaggedStringWithDuplicateStyleTags = @"[I][I]Test[/I]Test[/I]";
-        public const string TaggedStringWithValidDuplicateForegroundTags = @"[F!Red][F!Blue]Test[/F]Test[/F]";
-        public const string TaggedStringWithInvalidDuplicateForegroundTags = @"[F!Red][F!Red]Test[/F]Test[/F]";
-        public const string TaggedStringWithValidDuplicateBackgroundTags = @"[G#00FF00][G#0000FF]Test[/G]Test[/G]";
-        public const string TaggedStringWithInvalidDuplicateBackgroundTags = @"[G#00FF00][G#00FF00]Test[/G]Test[/G]";
-
-        public readonly ConsoleString ExpectedStringWithNoTags = new("This\n is\r\n a simple\r string");
-        public readonly ConsoleString ExpectedStringWithEscapedCharacters = new(@"This is a string with escaped characters: \ [");
-
-        public readonly ConsoleString ExpectedStringWithAllTags = "Bold".CS().WithBold() + " " +
-                                                                  "Light".CS().WithLight() + " " +
-                                                                  "Italic".CS().WithItalic() + " " +
-                                                                  "Underline".CS().WithUnderline() + " " +
-                                                                  "StrikeThrough".CS().WithStrikeThrough() + " " +
-                                                                  "Blink".CS().WithBlink() + " " +
-                                                                  "Inverse".CS().WithInverse() + " " +
-                                                                  "Foreground".CS().WithForeground(Color.Red) + " " +
-                                                                  "Background".CS().WithBackground(Color.FromArgb(0, 255, 0)) + " " +
-                                                                  "All".CS().WithBold().WithItalic().WithUnderline()
-                                                                      .WithForeground(Color.Red).WithBackground(Color.FromArgb(0, 255, 0)) + " " +
-                                                                  "None".CS();
 
         [Test] public void NoTags() 
-            => TaggedStringWithNoTags.WhenParsed(Is.EqualTo(ExpectedStringWithNoTags));
+            => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".CS()));
 
         [Test] public void ResetThrowsInStrict() 
-            => TaggedStringWithReset.WhenParsedStrictly(
+            => "This\n is\r\n a sim[//]ple\r string".WhenParsedStrictly(
                 Throws.TypeOf<ResetAllInStrictModeException>()
                     .With.Property("Line").EqualTo(3)
                     .And.Property("Column").EqualTo(7));
         
         [Test] public void ResetDoesNotThrowInNonStrict()
-            => TaggedStringWithReset.WhenParsed(Throws.Nothing);
+            => "This\n is\r\n a sim[//]ple\r string".WhenParsed(Throws.Nothing);
         
         [Test] public void UnfinishedTagThrows()
-            => TaggedStringUnfinishedTag.WhenParsed(Throws.TypeOf<UnexpectedEndOfStringException>());
+            => "[B]Test[/B".WhenParsed(Throws.TypeOf<UnexpectedEndOfStringException>());
         
         [Test] public void WithEscapedCharacters() 
-            => TaggedStringWithEscapedCharacters.WhenParsed(Is.EqualTo(ExpectedStringWithEscapedCharacters));
+            => @"This is a string with escaped characters: \\ \[".WhenParsed(Is.EqualTo(new ConsoleString(@"This is a string with escaped characters: \ [")));
         
         [Test] public void InvalidHexColorLengthThrows()
-            => TaggedStringWithInvalidHexColorLength.WhenParsed(Throws.TypeOf<InvalidHexColorException>());
+            => @"[F#FF]Test[/F]".WhenParsed(Throws.TypeOf<InvalidHexColorException>());
         
         [Test] public void InvalidHexColorLettersThrows()
-            => TaggedStringWithInvalidHexColorLetters.WhenParsed(Throws.TypeOf<InvalidHexColorException>());
+            => @"[F#FFFFGG]Test[/F]".WhenParsed(Throws.TypeOf<InvalidHexColorException>());
         
         [Test] public void UnknownColorNameThrows()
-            => TaggedStringWithUnknownColorName.WhenParsed(Throws.TypeOf<UnknownNamedColorException>());
+            => @"[F!Funky]Test[/F]".WhenParsed(Throws.TypeOf<UnknownNamedColorException>());
         
         [Test] public void WithAllTags() 
-            => TaggedStringWithAllTags.WhenParsed(Is.EqualTo(ExpectedStringWithAllTags));
+            => ("Text " +
+                @"[B]Bold[/B] [L]Light[/L] " +
+                @"[I]Italic[/I] [U]Underline[/U] [T]StrikeThrough[/T] [K]Blink[/K] [V]Inverse[/V] " +
+                @"[F#FF0000]Foreground[/F] [G!Green]Background[/G] [B][I][U][F!Red][G#00FF00]All[//] None")
+                .WhenParsed(Is.EqualTo("Text " +
+                                       "Bold".CS().WithBold() + " " +
+                                       "Light".CS().WithLight() + " " +
+                                       "Italic".CS().WithItalic() + " " +
+                                       "Underline".CS().WithUnderline() + " " +
+                                       "StrikeThrough".CS().WithStrikeThrough() + " " +
+                                       "Blink".CS().WithBlink() + " " +
+                                       "Inverse".CS().WithInverse() + " " +
+                                       "Foreground".CS().WithForeground(Color.Red) + " " +
+                                       "Background".CS().WithBackground(Color.Green) + " " +
+                                       "All".CS().WithBold().WithItalic().WithUnderline()
+                                           .WithForeground(Color.Red).WithBackground(Color.FromArgb(0, 255, 0)) + " " +
+                                       "None".CS()));
         
         [Test] public void WithUnmatchedStyleStartTag()
-            => TaggedStringWithUnmatchedStyleStartTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
+            => @"[B]Test".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
         
         [Test] public void WithUnmatchedForegroundStartTag()
-            => TaggedStringWithUnmatchedForegroundStartTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
+            => @"[F!Red]Test".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
         
         [Test] public void WithUnmatchedBackgroundStartTag()
-            => TaggedStringWithUnmatchedBackgroundStartTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
+            => @"[G!Red]Test".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
         
         [Test] public void WithUnmatchedStyleEndTag()
-            => TaggedStringWithUnmatchedStyleEndTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
+            => @"Test[/B]".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
         
         [Test] public void WithUnmatchedForegroundEndTag()
-            => TaggedStringWithUnmatchedForegroundEndTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
+            => @"Test[/F]".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
         
         [Test] public void WithUnmatchedBackgroundEndTag()
-            => TaggedStringWithUnmatchedBackgroundEndTag.WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
+            => @"Test[/G]".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStopTokenException>());
         
         [Test] public void WithDuplicateStyleTags()
-            => TaggedStringWithDuplicateStyleTags.WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateStyleException>());
+            => @"[I][I]Test[/I]Test[/I]".WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateStyleException>());
+        
+        [Test] public void WithMissingBracketOnStartTag()
+            => @"[BTesting[/B] Testing".WhenParsed(Throws.Exception.TypeOf<MissingCloseBracketException>());
+        
+        [Test] public void WithMissingBracketOnEndTag()
+            => @"[B]Testing[/B Testing".WhenParsed(Throws.Exception.TypeOf<MissingCloseBracketException>());
+        
+        [Test] public void WithMissingBracketOnColorTag()
+            => @"[F!RedTesting".WhenParsed(Throws.Exception.TypeOf<UnexpectedEndOfStringException>());
+        
+        [Test] public void InvalidForegroundColorType()
+            => @"[F^Other]Test".WhenParsed(Throws.Exception.TypeOf<InvalidColorParserException>());
+        
+        [Test] public void InvalidBackgroundColorType()
+            => @"[G^Other]Test".WhenParsed(Throws.Exception.TypeOf<InvalidColorParserException>());
+
+        [Test] public void UnknownStartTag()
+            => @"[Q]Testing".WhenParsed(Throws.Exception.TypeOf<UnknownTagException>());
+        
+        [Test] public void UnknownEndTag()
+            => @"Testing[/Q]".WhenParsed(Throws.Exception.TypeOf<UnknownTagException>());
         
         [Test] public void WithValidDuplicateForegroundTags()
-            => TaggedStringWithValidDuplicateForegroundTags.WhenParsedStrictly(Throws.Nothing);
+            => @"[F!Red][F!Blue]Test[/F]Test[/F]".WhenParsedStrictly(Throws.Nothing);
         
         [Test] public void WithInvalidDuplicateForegroundTags()
-            => TaggedStringWithInvalidDuplicateForegroundTags.WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateColorException>());
+            => @"[F!Red][F!Red]Test[/F]Test[/F]".WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateColorException>());
         
         [Test] public void WithValidDuplicateBackgroundTags()
-            => TaggedStringWithValidDuplicateBackgroundTags.WhenParsedStrictly(Throws.Nothing);
+            => @"[G#00FF00][G#0000FF]Test[/G]Test[/G]".WhenParsedStrictly(Throws.Nothing);
         
         [Test] public void WithInvalidDuplicateBackgroundTags()
-            => TaggedStringWithInvalidDuplicateBackgroundTags.WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateColorException>());
+            => @"[G#00FF00][G#00FF00]Test[/G]Test[/G]".WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateColorException>());
     }
     
     public class ToTags
