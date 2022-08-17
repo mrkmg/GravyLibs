@@ -13,7 +13,7 @@
         <Description>TODO</Description>
         <Copyright>2022 Public Domain</Copyright>
         <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-        <Version>0.1.0</Version>
+        <Version>0.2.0</Version>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.MultiHttp/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>

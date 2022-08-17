@@ -20,12 +20,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     protected readonly int MaxLeases;
     protected readonly int IdleTimeout;
 
-    protected Func<T> Initializer { get; set; }
-    protected Func<T, bool>? Validator { get; set; }
-    protected Action<T> Finalizer { get; set; }
-    protected Action<T>? OnLease { get; set; }
-    protected Action<T>? OnReturn { get; set; }
-    
+    private Func<T>? InitializerFunc { get; set; }
+    private Func<T, bool>? ValidatorFunc { get; set; }
+    private Action<T>? FinalizerAction { get; set; }
+    private Action<T>? OnLeaseAction { get; set; }
+    private Action<T>? OnReturnAction { get; set; }
+
     private readonly Queue<LeasePoolItem> _objects;
     private readonly SemaphoreSlim? _leasesSemaphore;
     private readonly SemaphoreSlim _queueSemaphore;
@@ -64,11 +64,11 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     {
         MaxLeases = maxLeases;
         IdleTimeout = idleTimeout;
-        Initializer = initializer ?? DefaultInitializer;
-        Finalizer = finalizer ?? DefaultFinalizer;
-        Validator = validator;
-        OnLease = onLease;
-        OnReturn = onReturn;
+        InitializerFunc = initializer;
+        ValidatorFunc = validator;
+        FinalizerAction = finalizer;
+        OnLeaseAction = onLease;
+        OnReturnAction = onReturn;
         
         if (maxLeases is < -1 or 0)
             throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(maxLeases));
@@ -145,14 +145,14 @@ public class LeasePool<T> : ILeasePool<T> where T : class
                 break;
             }
             
-            if (Validator?.Invoke(o.Object) ?? true)
+            if (Validator(o.Object))
             {
                 obj = o.Object;
                 break;
             }
             Finalizer(o.Object);
         }
-        OnLease?.Invoke(obj);
+        OnLease(obj);
         return new ActiveLease(this,  obj);
     }
 
@@ -187,14 +187,14 @@ public class LeasePool<T> : ILeasePool<T> where T : class
                 break;
             }
             
-            if (Validator?.Invoke(o.Object) ?? true)
+            if (Validator(o.Object))
             {
                 obj = o.Object;
                 break;
             }
             Finalizer(o.Object);
         }
-        OnLease?.Invoke(obj);
+        OnLease(obj);
         return new ActiveLease(this,  obj);
     }
 
@@ -203,7 +203,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         if (_isDisposed)
             return;
 
-        OnReturn?.Invoke(obj.Value);
+        OnReturn(obj.Value);
         
         // If IdleTimeout is zero, immediately finalize the object.
         if (IdleTimeout == 0)
@@ -257,7 +257,30 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         GC.SuppressFinalize(this);
     }
-    
+
+
+    protected virtual T Initializer() => InitializerFunc?.Invoke() ?? Activator.CreateInstance<T>();
+    protected virtual bool Validator(T obj) => ValidatorFunc?.Invoke(obj) ?? true;
+
+    protected virtual void Finalizer(T obj)
+    {
+        if (FinalizerAction is not null)
+        {
+            FinalizerAction(obj);
+        }
+        else switch (obj)
+        {
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
+            case IAsyncDisposable asyncDisposable:
+                asyncDisposable.DisposeAsync().AsTask().Wait();
+                break;
+        }
+    }
+    protected virtual void OnLease(T obj) => OnLeaseAction?.Invoke(obj);
+    protected virtual void OnReturn(T obj) => OnReturnAction?.Invoke(obj);
+
     private void ValidateCanLease(int millisecondsTimeout)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));

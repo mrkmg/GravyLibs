@@ -6,20 +6,20 @@ namespace Gravy.MultiHttp.Internal;
 internal class FileDefinitions : IDisposable
 {
     private readonly object _lock = new();
-    private readonly List<FileInstance> _fileInstanceList = new();
     private readonly ConcurrentQueue<(FileInstance, ChunkInstance)> _pendingChunks = new();
+    internal readonly List<FileInstance> FileInstanceList = new();
 
     public bool AllFilesCompleted()
     {
         lock (_lock)
-            return _fileInstanceList.All(f => f.Status == Status.Complete);
+            return FileInstanceList.All(f => f.Status == Status.Complete);
     }
 
     public void AddInstance(FileInstance instance)
     {
         lock (_lock)
         {
-            _fileInstanceList.Add(instance);
+            FileInstanceList.Add(instance);
             foreach (var chunk in instance.ChunksInternal) 
                 _pendingChunks.Enqueue((instance, chunk));
         }
@@ -42,7 +42,7 @@ internal class FileDefinitions : IDisposable
     
     public void Dispose()
     {
-        foreach (var fileInstance in _fileInstanceList)
+        foreach (var fileInstance in FileInstanceList)
             fileInstance.Dispose();
     }
 }

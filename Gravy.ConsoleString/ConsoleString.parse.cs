@@ -30,4 +30,6 @@ public partial class ConsoleString
     /// </remarks>
     public static ConsoleString Parse(string str, bool strictMode = false)
         => Assembler.Assemble(Tokenizer.Tokenize(str), strictMode);
+
+    public static string EscapeTags(string str) => string.Join(@"\[", str.Split('['));
 }

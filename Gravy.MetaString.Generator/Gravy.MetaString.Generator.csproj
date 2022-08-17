@@ -8,13 +8,12 @@
 
     <PropertyGroup>
         <PackageId>Gravy.MetaString.Generator</PackageId>
-        <Version>1.0.0</Version>
+        <Version>0.2.0</Version>
         <Title>Gravy.MetaString.Generator</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>TODO</Description>
         <Copyright>2022 Public Domain</Copyright>
         <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-        <Version>0.1.0</Version>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.MetaString.Generator/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>

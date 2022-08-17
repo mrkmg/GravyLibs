@@ -4,17 +4,16 @@
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
-        <PackageVersion>0.2.0</PackageVersion>
     </PropertyGroup>
 
     <PropertyGroup>
         <PackageId>Gravy.ConsoleString</PackageId>
+        <Version>0.2.4</Version>
         <Title>Gravy.ConsoleString</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>TODO</Description>
         <Copyright>2022 Public Domain</Copyright>
         <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-        <Version>0.1.0</Version>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.ConsoleString/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>

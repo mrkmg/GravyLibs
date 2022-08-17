@@ -5,6 +5,19 @@ namespace Gravy.MultiHttp;
 
 public sealed class DownloadSession : IDownloadSession
 {
+    internal DownloadSession(long maxChunkSize, 
+                             int maxConcurrency, 
+                             FileWriterType fileWriterType, 
+                             HttpClient? client = null)
+    {
+        MaxChunkSize = maxChunkSize;
+        MaxConcurrency = maxConcurrency;
+        _fileWriterType = fileWriterType;
+        _client = client ?? new();
+        _overallProgress = new();
+        _downloadAggregator = new(Enumerable.Repeat<Action>(RunnerThread, MaxConcurrency).ToArray());
+    }
+    
     private const string HeaderAcceptRangesKey = "Accept-Ranges";
     private const int DefaultBufferSize = 2048;
     private const int MaxBufferSize = 1024 * 1024;
@@ -32,19 +45,6 @@ public sealed class DownloadSession : IDownloadSession
     public long MaxChunkSize { get; }
     public int MaxConcurrency { get; }
 
-    internal DownloadSession(long maxChunkSize, 
-                             int maxConcurrency, 
-                             FileWriterType fileWriterType, 
-                             HttpClient? client = null)
-    {
-        MaxChunkSize = maxChunkSize;
-        MaxConcurrency = maxConcurrency;
-        _fileWriterType = fileWriterType;
-        _client = client ?? new();
-        _overallProgress = new();
-        _downloadAggregator = new(Enumerable.Repeat<Action>(RunnerThread, MaxConcurrency).ToArray());
-    }
-
     public IFileInstance AddDownload(IDownloadDefinition definition)
         => AddDownload(definition, CancellationToken.None);
 
@@ -57,25 +57,24 @@ public sealed class DownloadSession : IDownloadSession
         using var responseMessage = _client.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
 
         if (!responseMessage.IsSuccessStatusCode)
-            throw new("TODO - Non-SuccessfulStatusCode");
+            throw new HttpRequestException($"HEAD failed with code \"{responseMessage.StatusCode}\" for \"{definition.SourceUri}\"", null, responseMessage.StatusCode);
 
-        if (!responseMessage.Content.Headers.ContentLength.HasValue)
-            throw new("TODO - NoHeaderContentLengthKey");
-
-        if (!responseMessage.Headers.Contains(HeaderAcceptRangesKey))
-            throw new("TODO - NoAcceptsRangeKey");
-
-        if (responseMessage.Headers.GetValues(HeaderAcceptRangesKey).All(x => x != "bytes"))
-            throw new("TODO - NoAcceptRangesBytes");
+        if (responseMessage.Content.Headers.ContentLength is null)
+            throw new MissingContentLengthException(definition.SourceUri);
         
         var totalBytes = responseMessage.Content.Headers.ContentLength.Value;
         if (totalBytes <= 0)
-            throw new("TODO - InvalidContentLength");
+            throw new MissingContentLengthException(definition.SourceUri);
 
         Interlocked.Increment(ref _overallProgress.TotalFilesInternal);
         Interlocked.Add(ref _overallProgress.TotalBytesInternal, totalBytes);
 
-        var numChunksNeeded = (long) Math.Ceiling(totalBytes / (double)MaxChunkSize);
+        var numChunksNeeded = 1L;
+        // Can use multiple threads for this file
+        if (responseMessage.Headers.Contains(HeaderAcceptRangesKey) && 
+            responseMessage.Headers.GetValues(HeaderAcceptRangesKey).All(x => x != "bytes")) 
+            numChunksNeeded = (long)Math.Ceiling(totalBytes / (double)MaxChunkSize);
+        
         var chunkSize = totalBytes / numChunksNeeded;
         var chunks = new ChunkInstance[numChunksNeeded];
         var currentChunkIndex = 0;
@@ -85,7 +84,6 @@ public sealed class DownloadSession : IDownloadSession
             currentChunkIndex++;
         }
         chunks[currentChunkIndex] = new(currentChunkIndex, currentChunkIndex * chunkSize, totalBytes - 1);
-
         var file = new FileInstance(Guid.NewGuid(), definition, _fileWriterType, totalBytes, chunks);
         _fileDefinitions.AddInstance(file);
         return file;
@@ -256,7 +254,8 @@ public sealed class DownloadSession : IDownloadSession
     private void RunChunkDownload(FileInstance file, ChunkInstance chunk)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, file.Definition.SourceUri);
-        request.Headers.Range = new(chunk.StartByte, chunk.EndByte);
+        if (file.ChunksInternal.Length > 1)
+            request.Headers.Range = new(chunk.StartByte, chunk.EndByte);
         using var response = _client.Send(request, HttpCompletionOption.ResponseHeadersRead, _runningCancellationTokenSource.Token);
         if (!response.IsSuccessStatusCode)
             throw new("TODO - Non-SuccessfulStatusCode");
@@ -281,4 +280,16 @@ public sealed class DownloadSession : IDownloadSession
         Interlocked.Decrement(ref _overallProgress.ActiveThreadsInternal);
         ChunkCompleted(file, chunk);
     }
+}
+
+public class MissingContentLengthException : Exception
+{
+
+    public MissingContentLengthException(string sourceUri)
+    {
+        SourceUri = sourceUri;
+    }
+    
+    public string SourceUri { get; }
+    public override string Message => $"Missing Content-Length header in response for {SourceUri}";
 }
