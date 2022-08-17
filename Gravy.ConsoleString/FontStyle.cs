@@ -5,12 +5,12 @@ namespace Gravy.ConsoleString;
 [Flags]
 public enum FontStyle
 {
-    None = 0b0,
-    Italic = 0b1,
-    Underline = 0b10,
-    Blink = 0b1000,
-    Inverse = 0b10000,
-    StrikeThrough = 0b100000
+    None = 0,
+    Italic = 1,
+    Underline = 2,
+    Blink = 8,
+    Inverse = 16,
+    StrikeThrough = 32
 }
 
 public enum FontWeight

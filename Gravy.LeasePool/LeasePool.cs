@@ -1,4 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Serialization;
 using Timer = System.Timers.Timer;
 
 namespace Gravy.LeasePool;
@@ -8,27 +11,20 @@ namespace Gravy.LeasePool;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class LeasePool<T> : ILeasePool<T> where T : class
 {
-    private static readonly Func<T> DefaultInitializer = Activator.CreateInstance<T>;
-    private static readonly Action<T> DefaultFinalizer = t =>
-    {
-        if (t is IDisposable disposable) disposable.Dispose();
-    };
-
     /// <inheritdoc />
     public int AvailableLeases => MaxLeases - _leasesSemaphore?.CurrentCount ?? -1;
 
     protected readonly int MaxLeases;
     protected readonly int IdleTimeout;
 
-    private Func<T>? InitializerFunc { get; set; }
-    private Func<T, bool>? ValidatorFunc { get; set; }
-    private Action<T>? FinalizerAction { get; set; }
-    private Action<T>? OnLeaseAction { get; set; }
-    private Action<T>? OnReturnAction { get; set; }
+    private Func<T>? InitializerFunc { get; }
+    private Func<T, bool>? ValidatorFunc { get; }
+    private Action<T>? FinalizerAction { get; }
+    private Action<T>? OnLeaseAction { get; }
+    private Action<T>? OnReturnAction { get; }
 
-    private readonly Queue<LeasePoolItem> _objects;
+    private readonly SafeDoubleStack<LeasePoolItem> _objects;
     private readonly SemaphoreSlim? _leasesSemaphore;
-    private readonly SemaphoreSlim _queueSemaphore;
     private readonly Timer? _timer;
     
     private bool _isDisposed;
@@ -46,15 +42,15 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     ///     <para>By default, this calls <see cref="Activator.CreateInstance&lt;T&gt;()" /></para>
     /// </param>
     /// <param name="finalizer">
-    ///     <para>Validates an instance of T before it is leased from the pool.</para>
-    ///     <para>If this returns false, the instance will be disposed and a new instance will be created.</para>
-    /// </param>
-    /// <param name="validator">
     ///     <para>A factory method that is called when an instance of T is to be disposed.</para>
     ///     <para>By default, this method checks if the instance is an IDisposable and calls Dispose() on it.</para>
     /// </param>
+    /// <param name="validator">
+    ///     <para>Validates an instance of T before it is leased from the pool.</para>
+    ///     <para>If this returns false, the instance will be disposed and a new instance will be created.</para>
+    /// </param>
     /// <param name="onLease">Is executed on an object before it is leased.</param>
-    /// <param name="onReturn">Does nothing by default.</param>
+    /// <param name="onReturn">Is executed on an object after it is returned to the pool.</param>
     /// <exception cref="ArgumentException"> If maxLeases is 0 or less than -1 (-1 means infinite)</exception>
     /// <exception cref="ArgumentException"> If idleTimeout is 0 or less than -1 (-1 means infinite)</exception>
     public LeasePool(int maxLeases = -1, int idleTimeout = -1, 
@@ -76,8 +72,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         if (idleTimeout is < -1 or 0)
             throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(idleTimeout));
         
-        _objects = new(maxLeases > 0 ? maxLeases : 0);
-        _queueSemaphore = new(1, 1);
+        _objects = new();
         
         if (IdleTimeout > 0)
         {
@@ -96,8 +91,8 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     public LeasePool(LeasePoolConfiguration<T> configuration) : this(
         configuration.MaxLeases,
         configuration.IdleTimeout,
-        configuration.Initializer ?? DefaultInitializer,
-        configuration.Finalizer ?? DefaultFinalizer,
+        configuration.Initializer,
+        configuration.Finalizer,
         configuration.Validator,
         configuration.OnLease,
         configuration.OnReturn) { }
@@ -130,30 +125,28 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         var start = Environment.TickCount;
         
         if (_leasesSemaphore is not null)
-            await WaiterAsync(_leasesSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
+            await _leasesSemaphore.WaitForLeaseAsync(start, millisecondsTimeout, token).ConfigureAwait(false);
         
-        T obj;
         while (true)
         {
-            await WaiterAsync(_queueSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
-            var didRetrieve = _objects.TryDequeue(out var o);
-            _queueSemaphore.Release();
-            
-            if (!didRetrieve)
+            var timeout = Environment.TickCount - start;
+            if (timeout < 0) throw new LeaseTimeoutException(timeout);
+            T? item = null;
+            if (_objects.TryGetNewest(out var i, timeout, token))
+                item = i.Object;
+
+            if (item is not null)
             {
-                obj = Initializer();
-                break;
+                if (!Validator(item))
+                {
+                    Finalizer(item);
+                    continue;
+                }
             }
-            
-            if (Validator(o.Object))
-            {
-                obj = o.Object;
-                break;
-            }
-            Finalizer(o.Object);
+            else item = Initializer();
+            OnLease(item);
+            return new ActiveLease(this, item);
         }
-        OnLease(obj);
-        return new ActiveLease(this,  obj);
     }
 
     /// <inheritdoc />
@@ -170,72 +163,50 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     {
         ValidateCanLease(millisecondsTimeout);
         var start = Environment.TickCount;
-        
-        if (_leasesSemaphore is not null)
-            Waiter(_leasesSemaphore, start, millisecondsTimeout);
-        
-        T obj;
+        _leasesSemaphore?.WaitForLease(start, millisecondsTimeout);
         while (true)
         {
-            Waiter(_queueSemaphore, start, millisecondsTimeout);
-            var didRetrieve = _objects.TryDequeue(out var o);
-            _queueSemaphore.Release();
-            
-            if (!didRetrieve)
+            var timeout = Environment.TickCount - start;
+            if (timeout < 0) throw new LeaseTimeoutException(timeout);
+            T? item = null;
+            if (_objects.TryGetNewest(out var i, timeout))
+                item = i.Object;
+
+            if (item is not null)
             {
-                obj = Initializer();
-                break;
+                if (!Validator(item))
+                {
+                    Finalizer(item);
+                    continue;
+                }
             }
-            
-            if (Validator(o.Object))
-            {
-                obj = o.Object;
-                break;
-            }
-            Finalizer(o.Object);
+            else item = Initializer();
+            OnLease(item);
+            return new ActiveLease(this, item);
         }
-        OnLease(obj);
-        return new ActiveLease(this,  obj);
     }
 
     private void Return(ActiveLease obj)
     {
         if (_isDisposed)
-            return;
+            throw new ObjectDisposedException(nameof(LeasePool<T>));
 
         OnReturn(obj.Value);
-        
-        // If IdleTimeout is zero, immediately finalize the object.
-        if (IdleTimeout == 0)
-        {
-            Finalizer(obj.Value);
-            _leasesSemaphore?.Release();
-            return;
-        }
-
-        _queueSemaphore.Wait();
-        _objects.Enqueue(new(obj.Value));
-        _queueSemaphore.Release();
         _leasesSemaphore?.Release();
+        Debug.Assert(IdleTimeout > 0);
+        _objects.Add(new(obj.Value));
         if (_timer is not null && !_timer.Enabled)
             _timer.Start();
     }
 
     private void Cleanup()
     {
-        while (true)
+        using var objs = _objects.Use();
+        while (objs.TryPeekOldest(out var item))
         {
-            _queueSemaphore.Wait();
-            var didRetrieve = _objects.TryPeek(out var item);
-            if (!didRetrieve || item.LastUsed.AddMilliseconds(IdleTimeout) > DateTime.Now)
-            {
-                _queueSemaphore.Release();
-                break;
-            }
-            // We will get the same object as the TryPeek() above because of the _queueSemaphore locking
-            _objects.Dequeue();
-            _queueSemaphore.Release();
-            Finalizer(item.Object);
+            if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
+                return;
+            objs.RemoveOldest();
         }
     }
 
@@ -246,15 +217,13 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     public void Dispose()
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
-        
         _isDisposed = true;
-        _queueSemaphore.Dispose();
+        
         _leasesSemaphore?.Dispose();
         _timer?.Dispose();
-        
-        foreach (var obj in _objects)
-            Finalizer(obj.Object);
-        
+        using (var objs = _objects.Use())
+            foreach (var obj in objs) Finalizer(obj.Object);
+        _objects.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -289,40 +258,6 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
     }
 
-    private static void Waiter(SemaphoreSlim sem, int start, int timeout)
-    {
-        if (timeout is -1 or 0)
-        {
-            if (!sem.Wait(timeout))
-            {
-                throw new LeaseTimeoutException(timeout);
-            }
-            return;
-        }
-        var remaining = timeout - Environment.TickCount - start;
-        if (remaining < 0 || !sem.Wait(timeout))
-        {
-            throw new LeaseTimeoutException(timeout);
-        }
-    }
-
-    private static async Task WaiterAsync(SemaphoreSlim sem, int start, int timeout, CancellationToken innerToken)
-    {
-        if (timeout is -1 or 0)
-        {
-            if (!await sem.WaitAsync(timeout, innerToken).ConfigureAwait(false))
-            {
-                throw new LeaseTimeoutException(timeout);
-            }
-            return;
-        }
-        var remaining = timeout - Environment.TickCount - start;
-        if (remaining < 0 || !await sem.WaitAsync(timeout, innerToken).ConfigureAwait(false))
-        {
-            throw new LeaseTimeoutException(timeout);
-        }
-    }
-
     private readonly struct ActiveLease : ILease<T>
     {
         public T Value { get; }
@@ -352,6 +287,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         }
     }
 }
+
 
 /// <summary>
 /// The exception that is thrown when a lease times out.

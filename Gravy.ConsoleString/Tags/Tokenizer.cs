@@ -34,7 +34,6 @@ internal class Tokenizer
     {
         while (Index < SourceText.Length)
         {
-            Token token;
             switch (State)
             { 
                 case TokenizerState.Text:
@@ -56,14 +55,16 @@ internal class Tokenizer
                             {
                                 State = TokenizerState.ParseStartTag;
                             }
-                            if (Buffer.Count > 0)
-                                yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
+                            if (Buffer.Count == 0)
+                                break;
+                            yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
                             Buffer.Clear();
                             break;
                         case '\r' or '\n':
                             CurrentLine++;
                             CurrentColumn = 0;
                             Buffer.Add(Char);
+                            // Handle windows line endings (do not count \r\n as two lines)
                             if (Char is '\r' && TryPeekNextChar() is '\n')
                             {
                                 Index++;
@@ -86,114 +87,80 @@ internal class Tokenizer
                     Index++;
                     break;
                 case TokenizerState.ResetAll:
-                    VerifyCloseBracketAndProgressIndex();
+                    CloseToken();
                     yield return Token.ResetAll(TokenStartLine, TokenStartColumn);
                     break;
                 case TokenizerState.StartForeground:
-                    State = Char switch
-                    {
-                        '#' => TokenizerState.ParseForegroundHex,
-                        '!' => TokenizerState.ParseForegroundName,
-                        _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
-                    };
-                    Index++;
+                    yield return Token.ForegroundStart(ReadCurrentColor(), TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartBackground:
-                    State = Char switch
-                    {
-                        '#' => TokenizerState.ParseBackgroundHex,
-                        '!' => TokenizerState.ParseBackgroundName,
-                        _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
-                    };
-                    Index++;
-                    break;
-                case TokenizerState.ParseForegroundHex:
-                    token = Token.ForegroundStart(ReadColorHexValue(SourceText[Index..NextCloseBracketIndex()]), TokenStartLine, TokenStartColumn);
-                    Index = NextCloseBracketIndex() + 1;
-                    State = TokenizerState.Text;
-                    yield return token;
-                    break;
-                case TokenizerState.ParseBackgroundHex:
-                    token = Token.BackgroundStart(ReadColorHexValue(SourceText[Index..NextCloseBracketIndex()]), TokenStartLine, TokenStartColumn);
-                    Index = NextCloseBracketIndex() + 1;
-                    State = TokenizerState.Text;
-                    yield return token;
-                    break;
-                case TokenizerState.ParseForegroundName:
-                    token = Token.ForegroundStart(ReadColorNameValue(SourceText[Index..NextCloseBracketIndex()]), TokenStartLine, TokenStartColumn);
-                    Index = NextCloseBracketIndex() + 1;
-                    State = TokenizerState.Text;
-                    yield return token;
-                    break;
-                case TokenizerState.ParseBackgroundName:
-                    token = Token.BackgroundStart(ReadColorNameValue(SourceText[Index..NextCloseBracketIndex()]), TokenStartLine, TokenStartColumn);
-                    Index = NextCloseBracketIndex() + 1;
-                    State = TokenizerState.Text;
-                    yield return token;
+                    yield return Token.BackgroundStart(ReadCurrentColor(), TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartBold:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.WeightStart(FontWeight.Bold, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartLight:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.WeightStart(FontWeight.Light, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartItalic:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStart(FontStyle.Italic, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartUnderline:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStart(FontStyle.Underline, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartBlink:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStart(FontStyle.Blink, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartInverse:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStart(FontStyle.Inverse, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartStrikeThrough:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStart(FontStyle.StrikeThrough, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopForeground:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.ForegroundStop(TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopBackground:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.BackgroundStop(TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopBold:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.WeightStop(FontWeight.Bold, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopLight:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.WeightStop(FontWeight.Light, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopItalic:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStop(FontStyle.Italic, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopUnderline:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStop(FontStyle.Underline, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopBlink:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStop(FontStyle.Blink, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopInverse:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStop(FontStyle.Inverse, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StopStrikeThrough:
-                    VerifyCloseBracketAndProgressIndex();
                     yield return Token.StyleStop(FontStyle.StrikeThrough, TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -205,12 +172,25 @@ internal class Tokenizer
         if (Buffer.Count > 0)
             yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
     }
-    
+
     private char? TryPeekNextChar()
     {
         if (Index + 1 >= SourceText.Length)
             return null;
         return SourceText[Index + 1];
+    }
+
+    private Color ReadCurrentColor()
+    {
+        var nextIndex = NextCloseBracketIndex();
+        var color = Char switch
+        {
+            '#' => ReadColorHexValue(SourceText[(Index+1)..nextIndex]),
+            '!' => ReadColorNameValue(SourceText[(Index+1)..nextIndex]),
+            _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
+        };
+        Index = nextIndex;
+        return color;
     }
         
     private Color ReadColorHexValue(string hexValue)
@@ -221,21 +201,21 @@ internal class Tokenizer
             {
                 6 => Color.FromArgb(int.Parse("FF" + hexValue, NumberStyles.HexNumber)),
                 8 => Color.FromArgb(int.Parse(hexValue, NumberStyles.HexNumber)),
-                _ => throw new InvalidHexColorException(hexValue, CurrentLine, CurrentColumn)
+                _ => throw new("Hex color value must be 6 or 8 characters long")
             };
         }
-        catch (FormatException)
+        catch (Exception e)
         {
-            throw new InvalidHexColorException(hexValue, CurrentLine, CurrentColumn);
+            throw new InvalidHexColorException(e.Message, hexValue, CurrentLine, CurrentColumn);
         }
     }
 
     private Color ReadColorNameValue(string colorName)
     {
-        var color = Color.FromName(colorName);
-        if (color.ToKnownColor() == 0) 
-            throw new UnknownNamedColorException(colorName, CurrentLine, CurrentColumn);
-        return color;
+        Color color;
+        if ((color = Color.FromName(colorName)).ToKnownColor() != 0)
+            return color;
+        throw new UnknownNamedColorException(colorName, CurrentLine, CurrentColumn);
     }
         
     private void ParseStartTag()
@@ -273,23 +253,29 @@ internal class Tokenizer
         };
     }
 
-    private void VerifyCloseBracketAndProgressIndex()
+    private void CloseToken()
     {
         if (Char != ']')
             throw new MissingCloseBracketException(CurrentLine, CurrentColumn);
         Index++;
         State = TokenizerState.Text;
     }
-
+    
     private int NextCloseBracketIndex()
     {
         int closeBracketIndex;
         try
         {
             closeBracketIndex = SourceText.IndexOf(']', Index);
-        } catch (ArgumentOutOfRangeException) { throw new UnexpectedEndOfStringException(TokenStartLine, TokenStartColumn); }
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw new UnexpectedEndOfStringException(TokenStartLine, TokenStartColumn);
+        }
+        
         if (closeBracketIndex == -1)
             throw new UnexpectedEndOfStringException(TokenStartLine, TokenStartColumn);
+        
         return closeBracketIndex;
     }
 
@@ -301,10 +287,6 @@ internal class Tokenizer
         ResetAll,
         StartForeground,
         StartBackground,
-        ParseForegroundHex,
-        ParseBackgroundHex,
-        ParseForegroundName,
-        ParseBackgroundName,
         StartBold,
         StartLight,
         StartItalic,

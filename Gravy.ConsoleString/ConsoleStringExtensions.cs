@@ -6,7 +6,7 @@ namespace Gravy.ConsoleString;
 public static class ConsoleStringExtensions
 {
     public static ConsoleString ToConsoleString(this string str)
-        => With(str, ConsoleFormat.Default);
+        => new(str);
     
     // ReSharper disable once InconsistentNaming
     public static ConsoleString CS(this string str)
