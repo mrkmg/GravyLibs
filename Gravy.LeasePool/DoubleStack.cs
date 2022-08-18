@@ -21,6 +21,12 @@ internal interface IDoubleStack<T> :
 
 internal interface IUsedDoubleStack<T> : IDoubleStack<T>, IDisposable { }
 
+internal interface IThreadSafeUsable<T>
+{
+    public T Use(int millisecondsTimeout = -1, CancellationToken? cancellationToken = null);
+    public Task<T> UseAsync(int millisecondsTimeout = -1, CancellationToken? cancellationToken = null);
+}
+
 internal class DoubleStack<T> : IDoubleStack<T>
 {
     private readonly LinkedList<T> _list = new();
@@ -124,10 +130,10 @@ internal class DoubleStack<T> : IDoubleStack<T>
     }
 }
 
-internal class SafeDoubleStack<T> : IDisposable
+internal class ThreadSafeDoubleStack<T> : IDisposable, IThreadSafeUsable<IUsedDoubleStack<T>>
 {
-    private DoubleStack<T> _stack = new();
-    private SemaphoreSlim _semaphore = new(1, 1);
+    private readonly DoubleStack<T> _stack = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public void Dispose()
     {
@@ -145,48 +151,6 @@ internal class SafeDoubleStack<T> : IDisposable
     {
         await _semaphore.WaitAsync(timeout, token ?? CancellationToken.None);
         return new DisposableDoubleStack(_stack, _semaphore);
-    }
-    
-    public bool TryGetOldest([NotNullWhen(true)] out T? obj, int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        return s.TryGetOldest(out obj); 
-    }
-    
-    public bool TryGetNewest([NotNullWhen(true)] out T? obj, int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        return s.TryGetNewest(out obj); 
-    }
-    
-    public bool TryPeekOldest([NotNullWhen(true)] out T? obj, int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        return s.TryPeekOldest(out obj); 
-    }
-    
-    public bool TryPeekNewest([NotNullWhen(true)] out T? obj, int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        return s.TryPeekNewest(out obj); 
-    }
-    
-    public void RemoveOldest(int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        s.RemoveOldest(); 
-    }
-    
-    public void RemoveNewest(int timeout = -1, CancellationToken? token = null) 
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        s.RemoveNewest(); 
-    }
-
-    public void Add(T obj, int timeout = -1, CancellationToken? token = null)
-    {
-        using var s = Use(timeout, token ?? CancellationToken.None);
-        s.Add(obj);
     }
 
     private class DisposableDoubleStack : 

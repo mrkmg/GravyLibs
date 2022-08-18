@@ -23,7 +23,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     private Action<T>? OnLeaseAction { get; }
     private Action<T>? OnReturnAction { get; }
 
-    private readonly SafeDoubleStack<LeasePoolItem> _objects;
+    private readonly ThreadSafeDoubleStack<LeasePoolItem> _objects;
     private readonly SemaphoreSlim? _leasesSemaphore;
     private readonly Timer? _timer;
     
@@ -120,30 +120,28 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <inheritdoc />
     public async Task<ILease<T>> LeaseAsync(int millisecondsTimeout, CancellationToken token)
     {
-        ValidateCanLease(millisecondsTimeout);
-        
         var start = Environment.TickCount;
-        
-        if (_leasesSemaphore is not null)
-            await _leasesSemaphore.WaitForLeaseAsync(start, millisecondsTimeout, token).ConfigureAwait(false);
+        ValidateCanLease(millisecondsTimeout);
+        await TakeLeaseAsync(millisecondsTimeout, token);
         
         while (true)
         {
             var timeout = Environment.TickCount - start;
             if (timeout < 0) throw new LeaseTimeoutException(timeout);
             T? item = null;
-            if (_objects.TryGetNewest(out var i, timeout, token))
-                item = i.Object;
+            using (var objs = await _objects.UseAsync(timeout, token))
+                if (objs.TryGetNewest(out var i))
+                    item = i.Object;
 
             if (item is not null)
             {
-                if (!Validator(item))
+                if (!Validate(item))
                 {
-                    Finalizer(item);
+                    Finalize(item);
                     continue;
                 }
             }
-            else item = Initializer();
+            else item = Initialize();
             OnLease(item);
             return new ActiveLease(this, item);
         }
@@ -161,40 +159,54 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <inheritdoc />
     public ILease<T> Lease(int millisecondsTimeout)
     {
-        ValidateCanLease(millisecondsTimeout);
-        var start = Environment.TickCount;
-        _leasesSemaphore?.WaitForLease(start, millisecondsTimeout);
-        while (true)
-        {
-            var timeout = Environment.TickCount - start;
-            if (timeout < 0) throw new LeaseTimeoutException(timeout);
-            T? item = null;
-            if (_objects.TryGetNewest(out var i, timeout))
-                item = i.Object;
-
-            if (item is not null)
-            {
-                if (!Validator(item))
-                {
-                    Finalizer(item);
-                    continue;
-                }
-            }
-            else item = Initializer();
-            OnLease(item);
-            return new ActiveLease(this, item);
-        }
+        var leaseTask = LeaseAsync(millisecondsTimeout);
+        leaseTask.Wait();
+        if (leaseTask.IsCompletedSuccessfully)
+            return leaseTask.Result;
+        throw leaseTask.Exception ?? new Exception("Lease failed for unknown reasons");
     }
+    
+    /// <summary>
+    /// Disposes the pool, and all objects in it.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"></exception>
+    public void Dispose()
+    {
+        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
+        _isDisposed = true;
+        
+        _leasesSemaphore?.Dispose();
+        _timer?.Dispose();
+        using (var objs = _objects.Use())
+            foreach (var obj in objs) Finalize(obj.Object);
+        _objects.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual T Initialize() => InitializerFunc?.Invoke() ?? Activator.CreateInstance<T>();
+    protected virtual bool Validate(T obj) => ValidatorFunc?.Invoke(obj) ?? true;
+    protected virtual void OnLease(T obj) => OnLeaseAction?.Invoke(obj);
+    protected virtual void OnReturn(T obj) => OnReturnAction?.Invoke(obj);
+    protected virtual void Finalize(T obj) => (FinalizerAction ?? DefaultFinalizer).Invoke(obj);
 
     private void Return(ActiveLease obj)
     {
         if (_isDisposed)
             throw new ObjectDisposedException(nameof(LeasePool<T>));
+        
+        if (!ReferenceEquals(this, obj.Pool))
+            throw new InvalidOperationException("Lease is not from this pool");
+        
+        Debug.Assert(IdleTimeout > 0);
 
         OnReturn(obj.Value);
-        _leasesSemaphore?.Release();
-        Debug.Assert(IdleTimeout > 0);
-        _objects.Add(new(obj.Value));
+        ReleaseLease();
+        _objects.With(objs => objs.Add(new(obj.Value)));
+        TriggerTimer();
+    }
+
+    private void TriggerTimer()
+    {
         if (_timer is not null && !_timer.Enabled)
             _timer.Start();
     }
@@ -209,46 +221,17 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             objs.RemoveOldest();
         }
     }
-
-    /// <summary>
-    /// Disposes the pool, and all objects in it.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
-    public void Dispose()
+    
+    private async Task TakeLeaseAsync(int millisecondsTimeout, CancellationToken token)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
-        _isDisposed = true;
-        
-        _leasesSemaphore?.Dispose();
-        _timer?.Dispose();
-        using (var objs = _objects.Use())
-            foreach (var obj in objs) Finalizer(obj.Object);
-        _objects.Dispose();
-        GC.SuppressFinalize(this);
+        if (_leasesSemaphore != null) 
+            await _leasesSemaphore.WaitAsync(millisecondsTimeout, token).ConfigureAwait(false);
     }
 
-
-    protected virtual T Initializer() => InitializerFunc?.Invoke() ?? Activator.CreateInstance<T>();
-    protected virtual bool Validator(T obj) => ValidatorFunc?.Invoke(obj) ?? true;
-
-    protected virtual void Finalizer(T obj)
+    private void ReleaseLease()
     {
-        if (FinalizerAction is not null)
-        {
-            FinalizerAction(obj);
-        }
-        else switch (obj)
-        {
-            case IDisposable disposable:
-                disposable.Dispose();
-                break;
-            case IAsyncDisposable asyncDisposable:
-                asyncDisposable.DisposeAsync().AsTask().Wait();
-                break;
-        }
+        _leasesSemaphore?.Release();
     }
-    protected virtual void OnLease(T obj) => OnLeaseAction?.Invoke(obj);
-    protected virtual void OnReturn(T obj) => OnReturnAction?.Invoke(obj);
 
     private void ValidateCanLease(int millisecondsTimeout)
     {
@@ -257,21 +240,21 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         if (millisecondsTimeout < -1)
             throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
     }
-
+    
     private readonly struct ActiveLease : ILease<T>
     {
         public T Value { get; }
-        private readonly LeasePool<T> _pool;
+        internal readonly LeasePool<T> Pool;
         
         public ActiveLease(LeasePool<T> pool, T value)
         {
-            _pool = pool;
+            Pool = pool;
             Value = value;
         }
         
         public void Dispose()
         {
-            _pool.Return(this);
+            Pool.Return(this);
         }
     }
 
@@ -284,6 +267,19 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         {
             Object = obj;
             LastUsed = DateTime.UtcNow;
+        }
+    }
+
+    private static void DefaultFinalizer(T obj)
+    {
+        switch (obj)
+        {
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
+            case IAsyncDisposable asyncDisposable:
+                asyncDisposable.DisposeAsync().AsTask().Wait();
+                break;
         }
     }
 }
