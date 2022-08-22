@@ -23,10 +23,14 @@ public partial class ConsoleString
     /// <b>[/G]</b>       Stop the current background color.<br />
     /// <b>[B]</b>        Enable Bold.<br />
     /// <b>[/B]</b>       Disable Bold.<br />
+    /// <b>[L]</b>        Enable Light.<br />
+    /// <b>[/L]</b>       Disable Light.<br />
     /// <b>[I]</b>        Enable Italic.<br />
     /// <b>[/I]</b>       Disable Italic.<br />
     /// <b>[U]</b>        Enable Underline.<br />
     /// <b>[/U]</b>       Disable Underline.<br />
+    /// <b>[T]</b>        Enable Strikethrough.<br />
+    /// <b>[/T]</b>       Disable Strikethrough.<br />
     /// </remarks>
     public static ConsoleString Parse(string str, bool strictMode = false)
         => Assembler.Assemble(Tokenizer.Tokenize(str), strictMode);

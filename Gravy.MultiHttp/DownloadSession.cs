@@ -5,7 +5,7 @@ namespace Gravy.MultiHttp;
 
 public sealed class DownloadSession : IDownloadSession
 {
-    internal DownloadSession(long maxChunkSize, 
+    public DownloadSession(long maxChunkSize, 
                              int maxConcurrency, 
                              FileWriterType fileWriterType, 
                              HttpClient? client = null)

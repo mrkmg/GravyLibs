@@ -14,7 +14,7 @@
     <Description>A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.</Description>
     <Copyright>2022 Public Domain</Copyright>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-    <Version>0.10.0</Version>
+    <Version>0.10.2</Version>
     <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.LeasePool/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -36,6 +36,10 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Gravy.UsingLock\Gravy.UsingLock.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.MetaString.Test", "Gr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.LeasePool", "Gravy.LeasePool\Gravy.LeasePool.csproj", "{57BEE58F-3819-4B59-BA54-71AD8EA2AEDC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.UsingLock", "Gravy.UsingLock\Gravy.UsingLock.csproj", "{D3959E53-5144-4C11-8B17-457804A7C5F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{57BEE58F-3819-4B59-BA54-71AD8EA2AEDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57BEE58F-3819-4B59-BA54-71AD8EA2AEDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57BEE58F-3819-4B59-BA54-71AD8EA2AEDC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3959E53-5144-4C11-8B17-457804A7C5F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3959E53-5144-4C11-8B17-457804A7C5F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3959E53-5144-4C11-8B17-457804A7C5F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3959E53-5144-4C11-8B17-457804A7C5F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

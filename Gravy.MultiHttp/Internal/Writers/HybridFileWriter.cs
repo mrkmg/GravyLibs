@@ -17,14 +17,14 @@ internal class HybridFileWriter : IFileWriter
 
     public void StartFile()
     {
-        if (File.Exists(_instance.Definition.DestinationFilePath) && !_instance.Definition.Overwrite) 
-            throw new("File already exists and overwrite is false");
-        
-        if (File.Exists(_instance.Definition.DestinationFilePath + ".tmp"))
-            File.Delete(_instance.Definition.DestinationFilePath + ".tmp");
-        
         lock (_writeLock)
         {
+            if (File.Exists(_instance.Definition.DestinationFilePath) && !_instance.Definition.Overwrite) 
+                throw new FileExistsException(_instance.Definition.DestinationFilePath);
+            
+            if (File.Exists(_instance.Definition.DestinationFilePath + ".tmp"))
+                File.Delete(_instance.Definition.DestinationFilePath + ".tmp");
+        
             _destination = File.OpenWrite(_instance.Definition.DestinationFilePath + ".tmp");
         }
     }
@@ -62,14 +62,29 @@ internal class HybridFileWriter : IFileWriter
         {
             _destination?.Dispose();
             _destination = null;
+            if (File.Exists(_instance.Definition.DestinationFilePath))
+                if (_instance.Definition.Overwrite)
+                    File.Delete(_instance.Definition.DestinationFilePath);
+                else
+                    throw new FileExistsException(_instance.Definition.DestinationFilePath);
+            File.Move(_instance.Definition.DestinationFilePath + ".tmp", _instance.Definition.DestinationFilePath);
         }
-        if (_instance.Definition.Overwrite && File.Exists(_instance.Definition.DestinationFilePath))
-            File.Delete(_instance.Definition.DestinationFilePath);
-        File.Move(_instance.Definition.DestinationFilePath + ".tmp", _instance.Definition.DestinationFilePath);
     }
     
     public void Dispose()
     {
         _destination?.Dispose();
     }
+}
+
+public class FileExistsException : Exception
+{
+    private readonly string _filePath;
+
+    public FileExistsException(string filePath)
+    {
+        _filePath = filePath;
+    }
+    
+    public override string Message => $"File {_filePath} already exists.";
 }

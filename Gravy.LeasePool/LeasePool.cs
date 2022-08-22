@@ -1,14 +1,12 @@
-﻿using System.Collections;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
+﻿using System.Diagnostics;
+using Gravy.UsingLock;
+using JetBrains.Annotations;
 using Timer = System.Timers.Timer;
 
 namespace Gravy.LeasePool;
 
 /// <inheritdoc />
-[SuppressMessage("ReSharper", "UnusedType.Global")]
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+[PublicAPI]
 public class LeasePool<T> : ILeasePool<T> where T : class
 {
     /// <inheritdoc />
@@ -23,7 +21,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     private Action<T>? OnLeaseAction { get; }
     private Action<T>? OnReturnAction { get; }
 
-    private readonly ThreadSafeDoubleStack<LeasePoolItem> _objects;
+    private readonly Locked<StackQueue<LeasePoolItem>> _objects;
     private readonly SemaphoreSlim? _leasesSemaphore;
     private readonly Timer? _timer;
     
@@ -72,7 +70,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         if (idleTimeout is < -1 or 0)
             throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(idleTimeout));
         
-        _objects = new();
+        _objects = new(new());
         
         if (IdleTimeout > 0)
         {
@@ -129,8 +127,8 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             var timeout = Environment.TickCount - start;
             if (timeout < 0) throw new LeaseTimeoutException(timeout);
             T? item = null;
-            using (var objs = await _objects.UseAsync(timeout, token))
-                if (objs.TryGetNewest(out var i))
+            using (var borrowed = await _objects.BorrowAsync(timeout, token))
+                if (borrowed.Value.TryGetNewest(out var i))
                     item = i.Object;
 
             if (item is not null)
@@ -177,8 +175,10 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         _leasesSemaphore?.Dispose();
         _timer?.Dispose();
-        using (var objs = _objects.Use())
-            foreach (var obj in objs) Finalize(obj.Object);
+        using (var borrowed = _objects.Borrow())
+        {
+            foreach (var obj in borrowed.Value) Finalize(obj.Object);
+        }
         _objects.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -201,7 +201,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
 
         OnReturn(obj.Value);
         ReleaseLease();
-        _objects.With(objs => objs.Add(new(obj.Value)));
+        _objects.Do(objs => objs.Add(new(obj.Value)));
         TriggerTimer();
     }
 
@@ -213,12 +213,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
 
     private void Cleanup()
     {
-        using var objs = _objects.Use();
-        while (objs.TryPeekOldest(out var item))
+        using var borrowed = _objects.Borrow();
+        while (borrowed.Value.TryPeekOldest(out var item))
         {
             if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
                 return;
-            objs.RemoveOldest();
+            borrowed.Value.RemoveOldest();
         }
     }
     
