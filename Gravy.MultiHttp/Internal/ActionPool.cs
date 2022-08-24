@@ -13,7 +13,7 @@ internal class ActionPool
 
     public ActionPool(IEnumerable<Action> actions)
     {
-        _threads = actions.Select(ExceptionCapture).ToArray();
+        _threads = actions.Select(CreateThread).ToArray();
         _monitorThread = new(MonitorThread);
     }
 
@@ -37,7 +37,7 @@ internal class ActionPool
             _tcs.SetException(_exceptions.Where(e => e is not OperationCanceledException));
     }
     
-    private Thread ExceptionCapture(Action action)
+    private Thread CreateThread(Action action)
     {
         return new(() =>
         {

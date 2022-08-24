@@ -9,6 +9,8 @@ using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
 
+
+
 [DebuggerDisplay("{DebugView}")]
 [MetaStringGenerator(nameof(ConsoleFormat))]
 public partial class ConsoleString : ICloneable

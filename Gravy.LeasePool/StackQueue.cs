@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 
 namespace Gravy.LeasePool;
 
+[SuppressMessage("ReSharper", "UnusedMember.Global")] // Keeping for completeness
 internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<T>, ISerializable, IDeserializationCallback
 {
     private readonly LinkedList<T> _list = new();

@@ -7,7 +7,7 @@ internal class FileInstance : IFileInstance, IDisposable
     public Guid Id { get; }
     public IDownloadDefinition Definition { get; }
     public long TotalBytes { get; }
-    public Status Status { get; internal set; }
+    public Status Status { get; private set; }
     
     public long CompletedBytes => Progress.CompletedBytes;
     public double CurrentBytesPerSecond => Progress.CurrentBytesPerSecond;
@@ -20,7 +20,7 @@ internal class FileInstance : IFileInstance, IDisposable
 
     internal IFileWriter Writer { get; }
     internal readonly ChunkInstance[] ChunksInternal;
-    internal readonly object LockObject = new();
+    private readonly object LockObject = new();
     internal FileProgress Progress;
 
     public FileInstance(Guid id, IDownloadDefinition definition, FileWriterType writerType, long totalBytes, ChunkInstance[] chunks)
@@ -46,6 +46,39 @@ internal class FileInstance : IFileInstance, IDisposable
 
     public async Task WaitAsync(CancellationToken token)
         => await CompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
+
+    internal void SetErrored(Exception error)
+    {
+        Status = Status.Errored;
+        if (error is OperationCanceledException)
+            CompletionSource.TrySetCanceled();
+        else
+            CompletionSource.TrySetException(error);
+    }
+
+    internal bool CheckStarted()
+    {
+        if (Status != Status.Waiting) 
+            return false;
+        Status = Status.InProgress;
+        Writer.StartFile();
+        Progress.Started();
+        return true;
+    }
+    
+    internal bool CheckCompleted()
+    {
+        lock (LockObject)
+        {
+            if (Status == Status.Complete || ChunksInternal.Any(x => x.Status != Status.Complete))
+                return false;
+            Status = Status.Complete;
+            CompletionSource.SetResult();
+            Progress.Finished();
+            Writer.FinalizeFile();
+            return true;
+        }
+    }
 
     public void Dispose()
         => Writer.Dispose();

@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using Gravy.MultiHttp.Internal;
+using JetBrains.Annotations;
 
 namespace Gravy.MultiHttp;
 
+[PublicAPI]
 public sealed class DownloadSession : IDownloadSession
 {
     public DownloadSession(long maxChunkSize, 
@@ -53,28 +55,19 @@ public sealed class DownloadSession : IDownloadSession
         if (!definition.Overwrite && File.Exists(definition.DestinationFilePath))
             throw new ArgumentException($"{definition.DestinationFilePath} already exists and overwrite is false");
 
-        using var requestMessage = new HttpRequestMessage(HttpMethod.Head, definition.SourceUri);
-        using var responseMessage = _client.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
-
-        if (!responseMessage.IsSuccessStatusCode)
-            throw new HttpRequestException($"HEAD failed with code \"{responseMessage.StatusCode}\" for \"{definition.SourceUri}\"", null, responseMessage.StatusCode);
-
-        if (responseMessage.Content.Headers.ContentLength is null)
-            throw new MissingContentLengthException(definition.SourceUri);
-        
-        var totalBytes = responseMessage.Content.Headers.ContentLength.Value;
-        if (totalBytes <= 0)
-            throw new MissingContentLengthException(definition.SourceUri);
+        var (totalBytes, acceptsRange) = GetHeaderData(definition, token);
+        var numChunksNeeded = acceptsRange ? (int)Math.Ceiling(totalBytes / (double)MaxChunkSize) : 1;
+        var chunks = MakeChunks(totalBytes, numChunksNeeded);
+        var file = new FileInstance(Guid.NewGuid(), definition, _fileWriterType, totalBytes, chunks);
 
         Interlocked.Increment(ref _overallProgress.TotalFilesInternal);
-        Interlocked.Add(ref _overallProgress.TotalBytesInternal, totalBytes);
+        Interlocked.Add(ref _overallProgress.TotalBytesInternal, file.TotalBytes);
+        _fileDefinitions.AddInstance(file);
+        return file;
+    }
 
-        var numChunksNeeded = 1L;
-        // Can use multiple threads for this file
-        if (responseMessage.Headers.Contains(HeaderAcceptRangesKey) && 
-            responseMessage.Headers.GetValues(HeaderAcceptRangesKey).All(x => x != "bytes")) 
-            numChunksNeeded = (long)Math.Ceiling(totalBytes / (double)MaxChunkSize);
-        
+    private static ChunkInstance[] MakeChunks(long totalBytes, long numChunksNeeded)
+    {
         var chunkSize = totalBytes / numChunksNeeded;
         var chunks = new ChunkInstance[numChunksNeeded];
         var currentChunkIndex = 0;
@@ -84,9 +77,27 @@ public sealed class DownloadSession : IDownloadSession
             currentChunkIndex++;
         }
         chunks[currentChunkIndex] = new(currentChunkIndex, currentChunkIndex * chunkSize, totalBytes - 1);
-        var file = new FileInstance(Guid.NewGuid(), definition, _fileWriterType, totalBytes, chunks);
-        _fileDefinitions.AddInstance(file);
-        return file;
+        return chunks;
+    }
+
+    private (long totalBytes, bool acceptsRange) GetHeaderData(IDownloadDefinition definition, CancellationToken token)
+    {
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Head, definition.SourceUri);
+        using var responseMessage = _client.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
+
+        if (!responseMessage.IsSuccessStatusCode)
+            throw new HttpRequestException($"HEAD failed with code \"{responseMessage.StatusCode}\" for \"{definition.SourceUri}\"", null, responseMessage.StatusCode);
+
+        if (responseMessage.Content.Headers.ContentLength is null)
+            throw new MissingContentLengthException(definition.SourceUri);
+
+        var totalBytes = responseMessage.Content.Headers.ContentLength.Value;
+        if (totalBytes <= 0)
+            throw new MissingContentLengthException(definition.SourceUri);
+
+        var acceptsRange = responseMessage.Headers.Contains(HeaderAcceptRangesKey) &&
+                           responseMessage.Headers.GetValues(HeaderAcceptRangesKey).All(x => x != "bytes");
+        return (totalBytes, acceptsRange);
     }
 
     public IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions)
@@ -151,20 +162,11 @@ public sealed class DownloadSession : IDownloadSession
     
     private void ChunkStarted(FileInstance file, ChunkInstance chunk)
     {
-        var wasStarted = false;
-        lock (file.LockObject)
+        if (file.CheckStarted())
         {
-            if (file.Status == Status.Waiting)
-            {
-                wasStarted = true;
-                file.Status = Status.InProgress;
-                file.Writer.StartFile();
-                file.Progress.Started();
-                _overallProgress.ActiveFilesInternal.TryAdd(file.Id, file);
-            }
+            _overallProgress.ActiveFilesInternal.TryAdd(file.Id, file);
+            OnFileStarted?.Invoke(this, file);
         }
-        
-        if (wasStarted) OnFileStarted?.Invoke(this, file);
         
         Interlocked.Increment(ref file.Progress.ActiveThreadsInternal);
         file.Writer.StartChunk(chunk.ChunkIndex);
@@ -183,22 +185,8 @@ public sealed class DownloadSession : IDownloadSession
         chunk.Status = Status.Complete;
         chunk.Progress.Finished();
         file.Writer.FinalizeChunk(chunk.ChunkIndex);
-
-        lock (file.LockObject)
-        {
-            Debug.WriteLine("File {0} Chunk {1} Lock Acquired", file.Id, chunk.ChunkIndex);
-            if (file.Status == Status.Complete || file.ChunksInternal.Any(x => x.Status != Status.Complete))
-                return;
-            Debug.WriteLine("File {0} Chunk {1} File Complete", file.Id, chunk.ChunkIndex);
-            file.Status = Status.Complete;
-            file.CompletionSource.SetResult();
-            file.Progress.Finished();
-            Debug.WriteLine("File {0} Chunk {1} File Pre Finalize", file.Id, chunk.ChunkIndex);
-            file.Writer.FinalizeFile();
-            Debug.WriteLine("File {0} Chunk {1} File Post Finalize", file.Id, chunk.ChunkIndex);
-        }
-        Debug.WriteLine("File {0} Chunk {1} File Lock Released", file.Id, chunk.ChunkIndex);
-
+        if (!file.CheckCompleted())
+            return;
         _overallProgress.ActiveFilesInternal.TryRemove(file.Id, out _);
         Interlocked.Increment(ref _overallProgress.CompletedFilesInternal);
         Interlocked.Increment(ref file.Progress.CompletedChunksInternal);
@@ -214,11 +202,7 @@ public sealed class DownloadSession : IDownloadSession
     private void ChunkErrored(FileInstance file, ChunkInstance chunk, Exception error)
     {
         chunk.Status = Status.Errored;
-        file.Status = Status.Errored;
-        if (error is OperationCanceledException)
-            file.CompletionSource.TrySetCanceled();
-        else
-            file.CompletionSource.TrySetException(error);
+        file.SetErrored(error);
         OnError?.Invoke(this, error);
         OnEnded?.Invoke(this, false);
         OnFileError?.Invoke(this, (file, error));

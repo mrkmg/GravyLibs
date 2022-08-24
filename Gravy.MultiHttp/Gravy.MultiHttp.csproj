@@ -31,5 +31,9 @@
     <ItemGroup>
         <Using Include="Gravy.MultiHttp.Interfaces" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
+    </ItemGroup>
 
 </Project>
