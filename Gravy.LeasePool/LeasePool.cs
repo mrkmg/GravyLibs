@@ -118,19 +118,21 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <inheritdoc />
     public async Task<ILease<T>> LeaseAsync(int millisecondsTimeout, CancellationToken token)
     {
+        
+        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
+        
+        if (millisecondsTimeout < -1)
+            throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
+        
         var start = Environment.TickCount;
-        ValidateCanLease(millisecondsTimeout);
         await TakeLeaseAsync(millisecondsTimeout, token);
         
         while (true)
         {
-            var timeout = Environment.TickCount - start;
+            var timeout = millisecondsTimeout - Environment.TickCount + start;
             if (timeout < 0) throw new LeaseTimeoutException(timeout);
-            T? item = null;
-            using (var borrowed = await _objects.BorrowAsync(timeout, token))
-                if (borrowed.Value.TryGetNewest(out var i))
-                    item = i.Object;
 
+            var item =  await _objects.DoAsync(timeout, token, objects => objects.TryGetNewest(out var i) ? i.Object : null);
             if (item is not null)
             {
                 if (!Validate(item))
@@ -175,10 +177,10 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         _leasesSemaphore?.Dispose();
         _timer?.Dispose();
-        using (var borrowed = _objects.Borrow())
+        _objects.Do(o =>
         {
-            foreach (var obj in borrowed.Value) Finalize(obj.Object);
-        }
+            foreach (var i in o) Finalize(i.Object);
+        });
         _objects.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -213,13 +215,16 @@ public class LeasePool<T> : ILeasePool<T> where T : class
 
     private void Cleanup()
     {
-        using var borrowed = _objects.Borrow();
-        while (borrowed.Value.TryPeekOldest(out var item))
+        _objects.Do(objects =>
         {
-            if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
-                return;
-            borrowed.Value.RemoveOldest();
-        }
+            while (objects.TryPeekOldest(out var item))
+            {
+                if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
+                    return;
+                objects.RemoveOldest();
+            }            
+        });
+        
     }
     
     private async Task TakeLeaseAsync(int millisecondsTimeout, CancellationToken token)
@@ -231,14 +236,6 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     private void ReleaseLease()
     {
         _leasesSemaphore?.Release();
-    }
-
-    private void ValidateCanLease(int millisecondsTimeout)
-    {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
-        
-        if (millisecondsTimeout < -1)
-            throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
     }
     
     private readonly struct ActiveLease : ILease<T>

@@ -56,9 +56,9 @@ public sealed class DownloadSession : IDownloadSession
             throw new ArgumentException($"{definition.DestinationFilePath} already exists and overwrite is false");
 
         var (totalBytes, acceptsRange) = GetHeaderData(definition, token);
-        var numChunksNeeded = acceptsRange ? (int)Math.Ceiling(totalBytes / (double)MaxChunkSize) : 1;
+        var numChunksNeeded = acceptsRange && _fileWriterType != FileWriterType.Sequential ? (int)Math.Ceiling(totalBytes / (double)MaxChunkSize) : 1;
         var chunks = MakeChunks(totalBytes, numChunksNeeded);
-        var file = new FileInstance(Guid.NewGuid(), definition, _fileWriterType, totalBytes, chunks);
+        var file = new FileInstance(Guid.NewGuid(), definition, numChunksNeeded == 1 ? FileWriterType.Sequential : _fileWriterType, totalBytes, chunks);
 
         Interlocked.Increment(ref _overallProgress.TotalFilesInternal);
         Interlocked.Add(ref _overallProgress.TotalBytesInternal, file.TotalBytes);
@@ -148,10 +148,8 @@ public sealed class DownloadSession : IDownloadSession
     public Task WaitAsync()
         => WaitAsync(CancellationToken.None);
 
-    public async Task WaitAsync(CancellationToken token)
-    {
-        await _downloadAggregator.Task.WaitAsync(token).ConfigureAwait(false);
-    }
+    public async Task WaitAsync(CancellationToken token) 
+        => await _downloadAggregator.Task.WaitAsync(token).ConfigureAwait(false);
 
     public void Dispose()
     {
@@ -162,7 +160,7 @@ public sealed class DownloadSession : IDownloadSession
     
     private void ChunkStarted(FileInstance file, ChunkInstance chunk)
     {
-        if (file.CheckStarted())
+        if (file.CheckAndSetStarted())
         {
             _overallProgress.ActiveFilesInternal.TryAdd(file.Id, file);
             OnFileStarted?.Invoke(this, file);
@@ -185,7 +183,7 @@ public sealed class DownloadSession : IDownloadSession
         chunk.Status = Status.Complete;
         chunk.Progress.Finished();
         file.Writer.FinalizeChunk(chunk.ChunkIndex);
-        if (!file.CheckCompleted())
+        if (!file.CheckAndSetCompleted())
             return;
         _overallProgress.ActiveFilesInternal.TryRemove(file.Id, out _);
         Interlocked.Increment(ref _overallProgress.CompletedFilesInternal);
@@ -268,7 +266,6 @@ public sealed class DownloadSession : IDownloadSession
 
 public class MissingContentLengthException : Exception
 {
-
     public MissingContentLengthException(string sourceUri)
     {
         SourceUri = sourceUri;

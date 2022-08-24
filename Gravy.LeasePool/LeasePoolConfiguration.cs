@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using JetBrains.Annotations;
 
 namespace Gravy.LeasePool;
 
@@ -6,7 +6,7 @@ namespace Gravy.LeasePool;
 /// Configuration for the LeasePool.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+[PublicAPI]
 public class LeasePoolConfiguration<T>
 {
     /// <summary>

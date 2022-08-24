@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using JetBrains.Annotations;
 
 namespace Gravy.LeasePool;
 
@@ -8,8 +8,7 @@ namespace Gravy.LeasePool;
 /// Objects are instantiated as needed and disposed of when no longer needed. 
 /// </summary>
 /// <typeparam name="T"></typeparam>
-[SuppressMessage("ReSharper", "UnusedMember.Global")]
-[SuppressMessage("ReSharper", "UnusedMemberInSuper.Global")]
+[PublicAPI]
 public interface ILeasePool<T> : IDisposable
 {
     /// <summary>

@@ -17,5 +17,9 @@ public enum FileWriterType
     
     /// <summary>Writes data to the destination file directly.</summary>
     /// <remarks>Low memory and cpu usage, but very high disk usage. This is terribly inefficient, and should not be used.</remarks>
-    Direct
+    Direct,
+    
+    /// <summary>Writes data to the destination file directly, sequentially.</summary>
+    /// <remarks>Used internally to deal with Single Chunk downloads. Shouldn't be used by consumers.</remarks>
+    Sequential,
 }

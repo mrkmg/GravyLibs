@@ -56,17 +56,20 @@ internal class FileInstance : IFileInstance, IDisposable
             CompletionSource.TrySetException(error);
     }
 
-    internal bool CheckStarted()
+    internal bool CheckAndSetStarted()
     {
-        if (Status != Status.Waiting) 
-            return false;
-        Status = Status.InProgress;
-        Writer.StartFile();
-        Progress.Started();
-        return true;
+        lock (LockObject)
+        {
+            if (Status != Status.Waiting)
+                return false;
+            Status = Status.InProgress;
+            Writer.StartFile();
+            Progress.Started();
+            return true;
+        }
     }
     
-    internal bool CheckCompleted()
+    internal bool CheckAndSetCompleted()
     {
         lock (LockObject)
         {
