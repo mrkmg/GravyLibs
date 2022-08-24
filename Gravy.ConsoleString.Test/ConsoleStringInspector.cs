@@ -1,6 +1,9 @@
 ﻿using System.Drawing;
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString.Test;
+
+using ConsoleString = MetaString<ConsoleFormat>;
 
 public static class ConsoleStringInspector
 {

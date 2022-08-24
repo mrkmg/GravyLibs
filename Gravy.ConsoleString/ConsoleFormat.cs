@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.Text;
 
 namespace Gravy.ConsoleString;
 
+[DebuggerDisplay("{DebugDisplay()}")]
 public readonly struct ConsoleFormat
 {
     public static readonly ConsoleFormat Default = new();
@@ -52,24 +56,32 @@ public readonly struct ConsoleFormat
     public ConsoleFormat WithStrikeThrough() => WithStyle(FontStyle.StrikeThrough);
     public ConsoleFormat WithoutStrikeThrough() => WithoutStyle(FontStyle.StrikeThrough);
     
-    public bool Equals(ConsoleFormat other)
-    {
-        if (ForegroundColor.HasValue && !other.ForegroundColor.HasValue || !ForegroundColor.HasValue && other.ForegroundColor.HasValue)
-            return false;
-        if (ForegroundColor.HasValue && ForegroundColor.Value.ToArgb() != other.ForegroundColor!.Value.ToArgb())
-            return false;
-        
-        if (BackgroundColor.HasValue && !other.BackgroundColor.HasValue || !BackgroundColor.HasValue && other.BackgroundColor.HasValue)
-            return false;
-        if (BackgroundColor.HasValue && BackgroundColor.Value.ToArgb() != other.BackgroundColor!.Value.ToArgb())
-            return false;
-
-        return Weight == other.Weight && Styles == other.Styles;
-    }
+    public bool Equals(ConsoleFormat other) 
+        => MetaStringConsoleFormat.AreColorsEquivalent(ForegroundColor, other.ForegroundColor) && 
+           MetaStringConsoleFormat.AreColorsEquivalent(BackgroundColor, other.BackgroundColor) && 
+           Weight == other.Weight && Styles == other.Styles;
 
     public override bool Equals(object? obj)
         => obj is ConsoleFormat other && Equals(other);
 
     public override int GetHashCode()
         => HashCode.Combine(ForegroundColor, BackgroundColor, (int)Weight, (int)Styles);
+
+    public override string ToString()
+        => DebugDisplay();
+    
+    [DebuggerHidden]
+    private string DebugDisplay()
+    {
+        var attributes = new List<string>();
+        if (ForegroundColor is {} f) attributes.Add("FG=" + f.ToCsColor());
+        if (BackgroundColor is {} b) attributes.Add("BG=" + b.ToCsColor());
+        if (Weight != FontWeight.Normal) attributes.Add("W=" + Weight);
+        if (Styles.HasFlag(FontStyle.Underline)) attributes.Add("U");
+        if (Styles.HasFlag(FontStyle.Italic)) attributes.Add("I");
+        if (Styles.HasFlag(FontStyle.StrikeThrough)) attributes.Add("S");
+        if (Styles.HasFlag(FontStyle.Blink)) attributes.Add("L");
+        if (Styles.HasFlag(FontStyle.Inverse)) attributes.Add("R");
+        return "ConsoleFormat(" + string.Join(", ", attributes) + ")";
+    }
 }

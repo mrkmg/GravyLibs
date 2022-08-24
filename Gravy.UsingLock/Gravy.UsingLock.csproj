@@ -8,12 +8,12 @@
 
     <PropertyGroup>
         <PackageId>Gravy.UsingLock</PackageId>
+        <Version>0.1.1</Version>
         <Title>Gravy.UsingLock</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>A simple class to assist in being async/thread safe.</Description>
         <Copyright>2022 Public Domain</Copyright>
         <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-        <Version>0.1.0</Version>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.UsingLock/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>

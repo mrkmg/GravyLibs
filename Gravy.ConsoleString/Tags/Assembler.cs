@@ -133,6 +133,6 @@ internal class Assembler
         }
     }
 
-    public static ConsoleString Assemble(IEnumerable<Token> tokens, bool strict = false) 
+    public static MetaString<ConsoleFormat> Assemble(IEnumerable<Token> tokens, bool strict = false) 
         => new(new Assembler(strict).AssembleToEntries(tokens));
 }

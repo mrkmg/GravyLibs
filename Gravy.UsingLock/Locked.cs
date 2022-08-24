@@ -17,7 +17,8 @@ public class Locked<T> : IDisposable
         _semaphore = new(1, 1);
     }
 
-    public ILockedItem<T> Borrow(TimeSpan timeout, CancellationToken? cancellationToken = null) => Borrow((int)timeout.TotalMilliseconds, cancellationToken);
+    public ILockedItem<T> Borrow(TimeSpan timeout, CancellationToken? cancellationToken = null) 
+        => Borrow(timeout.TotalMilliseconds <= int.MaxValue ? (int)timeout.TotalMilliseconds : throw new ArgumentOutOfRangeException(nameof(timeout), "`TotalMilliseconds` must be less than `int.MaxValue`"), cancellationToken);
     public ILockedItem<T> Borrow(CancellationToken token) => Borrow(Timeout.Infinite, token);
     public ILockedItem<T> Borrow(int timeout = Timeout.Infinite, CancellationToken? cancellationToken = null)
     {
@@ -44,7 +45,7 @@ public class Locked<T> : IDisposable
         action(item.Value);
     }
     
-    public void DoAsync(Func<T, Task> action) => DoAsync(Timeout.Infinite, CancellationToken.None, action);
+    public Task DoAsync(Func<T, Task> action) => DoAsync(Timeout.Infinite, CancellationToken.None, action);
     public Task DoAsync(TimeSpan timeout, Func<T, Task> action) => DoAsync((int)timeout.TotalMilliseconds, CancellationToken.None, action);
     public Task DoAsync(TimeSpan timeout, CancellationToken token, Func<T, Task> action) => DoAsync((int)timeout.TotalMilliseconds, token, action);
     public Task DoAsync(CancellationToken token, Func<T, Task> action) => DoAsync(Timeout.Infinite, token, action);

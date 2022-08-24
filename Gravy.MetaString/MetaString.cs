@@ -19,7 +19,7 @@ public partial class MetaString<T>
         MetaEntries = new [] { new PositionedMetaEntry<T>(0, text, metaData) };
     }
 
-    protected MetaString(IEnumerable<MetaEntry<T>> entries) : this(entries.Positioned()) { }
+    public MetaString(IEnumerable<MetaEntry<T>> entries) : this(entries.Positioned()) { }
 
     protected MetaString(IEnumerable<PositionedMetaEntry<T>> entries)
     {
@@ -43,7 +43,7 @@ public partial class MetaString<T>
 
     public override string ToString()
         => string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data?.ToString()}]"));
-
+    
     private void CheckPositions()
     {
         var current = 0;

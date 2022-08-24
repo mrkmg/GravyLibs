@@ -9,12 +9,12 @@
   
   <PropertyGroup>
     <PackageId>Gravy.LeasePool</PackageId>
+    <Version>0.10.3</Version>
     <Title>Gravy.LeasePool</Title>
     <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
     <Description>A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.</Description>
     <Copyright>2022 Public Domain</Copyright>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-    <Version>0.10.2</Version>
     <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.LeasePool/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

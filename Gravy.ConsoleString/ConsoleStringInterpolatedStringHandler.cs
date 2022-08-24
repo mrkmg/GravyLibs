@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
+
+using ConsoleString = MetaString<ConsoleFormat>;
 
 // TODO: move to Gravy.MetaString
 [InterpolatedStringHandler]
@@ -65,7 +69,8 @@ public class ConsoleStringInterpolatedStringHandler
         AppendFormatted(o?.ToString() ?? string.Empty, alignment, format, provider);
     }
     
-    public ConsoleString ToConsoleString() => new(_parts);
+    public ConsoleString ToConsoleString() 
+        => new(_parts.SelectMany(x => x.MetaData).Select(x => x.WithoutPosition()));
     
     
 }

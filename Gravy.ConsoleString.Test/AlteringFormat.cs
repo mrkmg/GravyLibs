@@ -1,6 +1,9 @@
 using System.Drawing;
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString.Test;
+
+using ConsoleString = MetaString<ConsoleFormat>;
 
 public class AlteringFormat
 {
@@ -10,7 +13,7 @@ public class AlteringFormat
     [Test]
     public void ChangeForeground()
     {
-        var cs = new ConsoleString("Test", Red);
+        var cs = new ConsoleString("Test", new(Red));
         cs = cs.WithForeground(Blue);
         Assert.That(cs.ForegroundColors().First(), Is.EqualTo(Blue));
     }
@@ -18,7 +21,7 @@ public class AlteringFormat
     [Test]
     public void ChangeBackground()
     {
-        var cs = new ConsoleString("Test", null, Red);
+        var cs = new ConsoleString("Test", new(null, Red));
         cs = cs.WithBackground(Blue);
         Assert.That(cs.BackgroundColors().First(), Is.EqualTo(Blue));
     }
@@ -26,7 +29,7 @@ public class AlteringFormat
     [Test]
     public void ChangeWeight()
     {
-        var cs = new ConsoleString("Test", null, null, FontWeight.Bold);
+        var cs = new ConsoleString("Test", new(null, null, FontWeight.Bold));
         cs = cs.WithWeight(FontWeight.Light);
         Assert.That(cs.Weights().First(), Is.EqualTo(FontWeight.Light));
     }
@@ -34,7 +37,7 @@ public class AlteringFormat
     [Test]
     public void ChangeStyle()
     {
-        var cs = new ConsoleString("Test", null, null, FontWeight.Normal, FontStyle.Italic);
+        var cs = new ConsoleString("Test", new(null, null, FontWeight.Normal, FontStyle.Italic));
         cs = cs.WithStyle(FontStyle.Underline);
         Assert.That(cs.Styles().First(), Is.EqualTo(FontStyle.Italic | FontStyle.Underline));
     }

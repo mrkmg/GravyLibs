@@ -11,6 +11,9 @@ public static class Extensions
             next += entries[i].Length;
         }
     }
+    
+    public static IEnumerable<MetaEntry<T>> WithoutPosition<T>(this IEnumerable<PositionedMetaEntry<T>> entries)
+        => entries.Select(x => x.WithoutPosition());
 
     public static PositionedMetaEntry<T>[] Positioned<T>(this IList<MetaEntry<T>> entries)
     {

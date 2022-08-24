@@ -96,7 +96,7 @@ public sealed class DownloadSession : IDownloadSession
             throw new MissingContentLengthException(definition.SourceUri);
 
         var acceptsRange = responseMessage.Headers.Contains(HeaderAcceptRangesKey) &&
-                           responseMessage.Headers.GetValues(HeaderAcceptRangesKey).All(x => x != "bytes");
+                           responseMessage.Headers.GetValues(HeaderAcceptRangesKey).Any(x => x == "bytes");
         return (totalBytes, acceptsRange);
     }
 

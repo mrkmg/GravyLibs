@@ -1,7 +1,10 @@
 using System.Drawing;
 using Ansi;
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
+
+using ConsoleString = MetaString<ConsoleFormat>;
 
 public static class ConsoleStringExtensions
 {
@@ -10,7 +13,7 @@ public static class ConsoleStringExtensions
     
     // ReSharper disable once InconsistentNaming
     public static ConsoleString CS(this string str)
-        => ConsoleString.Parse(str);
+        => str.FromTags();
 
     // ReSharper disable once InconsistentNaming
     public static ConsoleString FG(this ConsoleString cStr, Color color)

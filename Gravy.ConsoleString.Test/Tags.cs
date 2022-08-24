@@ -1,9 +1,12 @@
+// ReSharper disable MemberCanBePrivate.Global
 using System.Drawing;
 using Gravy.ConsoleString.Tags;
 using NUnit.Framework.Constraints;
-// ReSharper disable MemberCanBePrivate.Global
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString.Test;
+
+using ConsoleString = MetaString<ConsoleFormat>;
 
 public class Tags
 {
@@ -47,7 +50,7 @@ public class Tags
                 @"[B]Bold[/B] [L]Light[/L] " +
                 @"[I]Italic[/I] [U]Underline[/U] [T]StrikeThrough[/T] [K]Blink[/K] [V]Inverse[/V] " +
                 @"[F#FF0000]Foreground[/F] [G!Green]Background[/G] [B][I][U][F!Red][G#00FF00]All[//] None")
-                .WhenParsed(Is.EqualTo("Text " +
+                .WhenParsed(Is.EqualTo(("Text " +
                                        "Bold".CS().WithBold() + " " +
                                        "Light".CS().WithLight() + " " +
                                        "Italic".CS().WithItalic() + " " +
@@ -59,7 +62,7 @@ public class Tags
                                        "Background".CS().WithBackground(Color.Green) + " " +
                                        "All".CS().WithBold().WithItalic().WithUnderline()
                                            .WithForeground(Color.Red).WithBackground(Color.FromArgb(0, 255, 0)) + " " +
-                                       "None".CS()));
+                                       "None".CS()).Optimize()));
         
         [Test] public void WithUnmatchedStyleStartTag()
             => @"[B]Test".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
@@ -141,10 +144,10 @@ public class Tags
 public static class TagsTestExtension
 {
     public static void WhenParsed(this string taggedString, IResolveConstraint c)
-        => Assert.That(() => ConsoleString.Parse(taggedString), c);
+        => Assert.That(() => taggedString.FromTags(), c);
     
     public static void WhenParsedStrictly(this string taggedString, IResolveConstraint c)
-        => Assert.That(() => ConsoleString.Parse(taggedString, true), c);
+        => Assert.That(() => taggedString.FromTags(true), c);
     
     public static void WhenTagged(this ConsoleString consoleString, IResolveConstraint c)
         => Assert.That(() => consoleString.ToTaggedString(), c);
