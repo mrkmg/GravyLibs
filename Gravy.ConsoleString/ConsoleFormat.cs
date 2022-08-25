@@ -15,7 +15,6 @@ public readonly struct ConsoleFormat
     public readonly FontWeight Weight;
     public readonly FontStyle Styles;
     
-    
     public ConsoleFormat(Color? foreground = null, Color? background = null, FontWeight weight = FontWeight.Normal, FontStyle styles = FontStyle.None)
     {
         ForegroundColor = foreground;
@@ -80,7 +79,7 @@ public readonly struct ConsoleFormat
         if (Styles.HasFlag(FontStyle.Italic)) attributes.Add("I");
         if (Styles.HasFlag(FontStyle.StrikeThrough)) attributes.Add("S");
         if (Styles.HasFlag(FontStyle.Blink)) attributes.Add("L");
-        if (Styles.HasFlag(FontStyle.Inverse)) attributes.Add("R");
+        if (Styles.HasFlag(FontStyle.Inverse)) attributes.Add("V");
         return "ConsoleFormat(" + string.Join(", ", attributes) + ")";
     }
 }
