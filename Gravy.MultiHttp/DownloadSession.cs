@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Gravy.MultiHttp.Internal;
 using JetBrains.Annotations;
 

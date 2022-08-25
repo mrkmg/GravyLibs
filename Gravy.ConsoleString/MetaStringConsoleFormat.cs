@@ -9,7 +9,7 @@ using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
 
-using ConsoleString = Gravy.MetaString.MetaString<Gravy.ConsoleString.ConsoleFormat>;
+using ConsoleString = MetaString<ConsoleFormat>;
 
 public static class MetaStringConsoleFormat
 {
@@ -47,14 +47,14 @@ public static class MetaStringConsoleFormat
     /// <param name="str">The input formatted string.</param>
     /// <param name="strictMode">Enable on strict mode</param>
     /// <returns>The parsed ConsoleString</returns>
-    /// <exception cref="Exception">Parser Errors</exception>
+    /// <exception cref="System.Exception">Parser Errors</exception>
     /// <remarks>
     /// <para>Tags:</para>
-    /// <b>[F#XXXXXX]</b> Set foreground color to Hex color 'XXXXXX'.<br />
-    /// <b>[F!Name]</b>   Set foreground color to a known color named 'Name'. See <see cref="KnownColor"/><br />
+    /// <b>[F#XXXXXX]</b> Set foreground color to Hex color.<br />
+    /// <b>[F!Name]</b>   Set foreground color to a known color name. See <see cref="KnownColor"/><br />
     /// <b>[/F]</b>       Stop the current foreground color.<br />
-    /// <b>[G#XXXXXX]</b> Set background color to Hex color XXXXXX.<br />
-    /// <b>[G!Name]</b>   Set background color to Hex color named 'Name'. See <see cref="KnownColor"/><br />
+    /// <b>[G#XXXXXX]</b> Set background color to Hex color.<br />
+    /// <b>[G!Name]</b>   Set background color to known color name. See <see cref="KnownColor"/><br />
     /// <b>[/G]</b>       Stop the current background color.<br />
     /// <b>[B]</b>        Enable Bold.<br />
     /// <b>[/B]</b>       Disable Bold.<br />
@@ -66,6 +66,11 @@ public static class MetaStringConsoleFormat
     /// <b>[/U]</b>       Disable Underline.<br />
     /// <b>[T]</b>        Enable Strikethrough.<br />
     /// <b>[/T]</b>       Disable Strikethrough.<br />
+    /// <b>[K]</b>        Enable Blink.<br />
+    /// <b>[/K]</b>       Disable Blink.<br />
+    /// <b>[V]</b>        Enable Inverse.<br />
+    /// <b>[/V]</b>       Disable Inverse.<br />
+    /// <b>[//]</b>       Reset all styles.
     /// </remarks>
     public static ConsoleString FromTags(this string str, bool strictMode = false) 
         => Assembler.Assemble(Tokenizer.Tokenize(str), strictMode).Optimize();

@@ -20,7 +20,7 @@ internal class FileInstance : IFileInstance, IDisposable
 
     internal IFileWriter Writer { get; }
     internal readonly ChunkInstance[] ChunksInternal;
-    private readonly object LockObject = new();
+    private readonly object _lockObject = new();
     internal FileProgress Progress;
 
     public FileInstance(Guid id, IDownloadDefinition definition, FileWriterType writerType, long totalBytes, ChunkInstance[] chunks)
@@ -37,6 +37,7 @@ internal class FileInstance : IFileInstance, IDisposable
             FileWriterType.Hybrid => new HybridFileWriter(this),
             FileWriterType.InMemory => new MemoryFileWriter(this),
             FileWriterType.Direct => new DirectWriter(this),
+            FileWriterType.Sequential => new SequentialWriter(this),
             _ => throw new ArgumentOutOfRangeException(nameof(writerType), writerType, null)
         };
     }
@@ -58,7 +59,7 @@ internal class FileInstance : IFileInstance, IDisposable
 
     internal bool CheckAndSetStarted()
     {
-        lock (LockObject)
+        lock (_lockObject)
         {
             if (Status != Status.Waiting)
                 return false;
@@ -71,7 +72,7 @@ internal class FileInstance : IFileInstance, IDisposable
     
     internal bool CheckAndSetCompleted()
     {
-        lock (LockObject)
+        lock (_lockObject)
         {
             if (Status == Status.Complete || ChunksInternal.Any(x => x.Status != Status.Complete))
                 return false;

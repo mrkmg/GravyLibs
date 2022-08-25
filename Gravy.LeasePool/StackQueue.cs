@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
-using JetBrains.Annotations;
 
 namespace Gravy.LeasePool;
 
@@ -61,7 +58,7 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
     public void RemoveOldest() => _list.RemoveFirst();
     public void RemoveNewest() => _list.RemoveLast();
     
-    public void Add([System.Diagnostics.CodeAnalysis.NotNull] T obj)
+    public void Add([NotNull] T obj)
     {
         if (obj is null) throw new ArgumentNullException(nameof(obj));
         _list.AddLast(obj);
