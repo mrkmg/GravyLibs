@@ -44,17 +44,17 @@ internal class Assembler
                     yield return new(textToken.Value, CurrentFormat);
                     break;
                 case Token.BackgroundStartToken backgroundStartToken:
-                    if (StrictMode && BackgroundStack.Count > 0 && BackgroundStack.Peek().Value == backgroundStartToken.Value)
+                    if (StrictMode && BackgroundStack.TryPeek(out var backgroundTip) && backgroundTip.Value == backgroundStartToken.Value)
                         throw new DuplicateColorException("Background", backgroundStartToken.Value, backgroundStartToken.Line, backgroundStartToken.Column);
                     BackgroundStack.Push(backgroundStartToken);
                     break;
                 case Token.ForegroundStartToken foregroundStartToken:
-                    if (StrictMode && ForegroundStack.Count > 0 && ForegroundStack.Peek().Value == foregroundStartToken.Value)
+                    if (StrictMode && BackgroundStack.TryPeek(out var foregroundTip) && foregroundTip.Value == foregroundStartToken.Value)
                         throw new DuplicateColorException("Foreground", foregroundStartToken.Value, foregroundStartToken.Line, foregroundStartToken.Column);
                     ForegroundStack.Push(foregroundStartToken);
                     break;
                 case Token.WeightStartToken weightStartToken:
-                    if (StrictMode && WeightStack.Count > 0 && WeightStack.Peek().Value == weightStartToken.Value)
+                    if (StrictMode && WeightStack.TryPeek(out var weightTip) && weightTip.Value == weightStartToken.Value)
                         throw new DuplicateWeightException(weightStartToken.Value, weightStartToken.Line, weightStartToken.Column);
                     WeightStack.Push(weightStartToken);
                     break;
@@ -75,14 +75,14 @@ internal class Assembler
                     break;
                 case Token.WeightStopToken stopToken:
                     if (StrictMode && WeightStack.Count == 0) 
-                        throw new UnmatchedStopTokenException(token.Line, token.Column);
+                        throw new UnmatchedStopTokenException(stopToken.Line, stopToken.Column);
                     if (WeightStack.Count > 0 && WeightStack.Peek().Value != stopToken.Value)
-                        throw new UnmatchedStopTokenException(token.Line, token.Column);
+                        throw new UnmatchedStopTokenException(stopToken.Line, stopToken.Column);
                     WeightStack.TryPop(out _);
                     break;
                 case Token.StyleStopToken styleStopToken:
                     if (StrictMode && FontStyleCounts[styleStopToken.Value].Count == 0)
-                        throw new UnmatchedStopTokenException(token.Line, token.Column);
+                        throw new UnmatchedStopTokenException(styleStopToken.Line, styleStopToken.Column);
                     FontStyleCounts[styleStopToken.Value].TryPop(out _);
                     break;
                 case Token.ResetAllToken:

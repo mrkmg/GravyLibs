@@ -39,13 +39,13 @@ internal class Tokenizer
                     switch (Char)
                     {
                         case '\\':
-                            Buffer.Add(TryPeekNextChar() ?? throw new UnexpectedEndOfStringException(CurrentLine, CurrentColumn));
+                            Buffer.Add(PeekNextChar() ?? throw new UnexpectedEndOfStringException(CurrentLine, CurrentColumn));
                             Index++;
                             break;
                         case '[':
                             TokenStartColumn = CurrentColumn;
                             TokenStartLine = CurrentLine;
-                            if (TryPeekNextChar() is '/')
+                            if (PeekNextChar() is '/')
                             {
                                 State = TokenizerState.ParseStopTag;
                                 Index++;
@@ -64,7 +64,7 @@ internal class Tokenizer
                             CurrentColumn = 0;
                             Buffer.Add(Char);
                             // Handle windows line endings (do not count \r\n as two lines)
-                            if (Char is '\r' && TryPeekNextChar() is '\n')
+                            if (Char is '\r' && PeekNextChar() is '\n')
                             {
                                 Index++;
                                 Buffer.Add(Char);
@@ -86,8 +86,8 @@ internal class Tokenizer
                     Index++;
                     break;
                 case TokenizerState.ResetAll:
-                    CloseToken();
                     yield return Token.ResetAll(TokenStartLine, TokenStartColumn);
+                    CloseToken();
                     break;
                 case TokenizerState.StartForeground:
                     yield return Token.ForegroundStart(ReadCurrentColor(), TokenStartLine, TokenStartColumn);
@@ -172,7 +172,7 @@ internal class Tokenizer
             yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
     }
 
-    private char? TryPeekNextChar()
+    private char? PeekNextChar()
     {
         if (Index + 1 >= SourceText.Length)
             return null;

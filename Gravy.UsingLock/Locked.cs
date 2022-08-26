@@ -36,7 +36,15 @@ public class Locked<T> : IDisposable
     
     private class Borrowed : IBorrowed<T>
     {
-        public T Value => _source._item;
+        public T Value
+        {
+            get
+            {
+                if (_disposed != 0)
+                    throw new ObjectDisposedException(nameof(Borrowed));
+                return _source._item;
+            }
+        }
         private readonly Locked<T> _source;
         private int _disposed;
         
