@@ -16,11 +16,11 @@ internal class FileInstance : IFileInstance, IDisposable
     public IReadOnlyList<IChunkInstance> Chunks => ChunksInternal;
     public int ElapsedMilliseconds => Progress.ElapsedMilliseconds;
 
-    internal readonly TaskCompletionSource CompletionSource = new();
-
-    internal IFileWriter Writer { get; }
-    internal readonly ChunkInstance[] ChunksInternal;
     private readonly object _lockObject = new();
+    private readonly TaskCompletionSource _completionSource = new();
+    
+    internal readonly ChunkInstance[] ChunksInternal;
+    internal IFileWriter Writer { get; }
     internal FileProgress Progress;
 
     public FileInstance(Guid id, IDownloadDefinition definition, FileWriterType writerType, long totalBytes, ChunkInstance[] chunks)
@@ -43,18 +43,18 @@ internal class FileInstance : IFileInstance, IDisposable
     }
 
     public async Task WaitAsync()
-        => await CompletionSource.Task.ConfigureAwait(false);
+        => await _completionSource.Task.ConfigureAwait(false);
 
     public async Task WaitAsync(CancellationToken token)
-        => await CompletionSource.Task.WaitAsync(token).ConfigureAwait(false);
+        => await _completionSource.Task.WaitAsync(token).ConfigureAwait(false);
 
     internal void SetErrored(Exception error)
     {
         Status = Status.Errored;
         if (error is OperationCanceledException)
-            CompletionSource.TrySetCanceled();
+            _completionSource.TrySetCanceled();
         else
-            CompletionSource.TrySetException(error);
+            _completionSource.TrySetException(error);
     }
 
     internal bool CheckAndSetStarted()
@@ -77,7 +77,7 @@ internal class FileInstance : IFileInstance, IDisposable
             if (Status == Status.Complete || ChunksInternal.Any(x => x.Status != Status.Complete))
                 return false;
             Status = Status.Complete;
-            CompletionSource.SetResult();
+            _completionSource.SetResult();
             Progress.Finished();
             Writer.FinalizeFile();
             return true;

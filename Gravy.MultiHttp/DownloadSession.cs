@@ -46,21 +46,17 @@ public sealed class DownloadSession : IDownloadSession
     public long MaxChunkSize { get; }
     public int MaxConcurrency { get; }
 
-    public IFileInstance AddDownload(IDownloadDefinition definition)
-        => AddDownload(definition, CancellationToken.None);
-
-    public IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken token)
+    public IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken? token = null)
     {
         if (!definition.Overwrite && File.Exists(definition.DestinationFilePath))
             throw new ArgumentException($"{definition.DestinationFilePath} already exists and overwrite is false");
 
-        var (totalBytes, acceptsRange) = GetHeaderData(definition, token);
+        var (totalBytes, acceptsRange) = GetHeaderData(definition, token ?? CancellationToken.None);
         var numChunksNeeded = acceptsRange && _fileWriterType != FileWriterType.Sequential ? (int)Math.Ceiling(totalBytes / (double)MaxChunkSize) : 1;
         var chunks = MakeChunks(totalBytes, numChunksNeeded);
         var file = new FileInstance(Guid.NewGuid(), definition, numChunksNeeded == 1 ? FileWriterType.Sequential : _fileWriterType, totalBytes, chunks);
 
-        Interlocked.Increment(ref _overallProgress.TotalFilesInternal);
-        Interlocked.Add(ref _overallProgress.TotalBytesInternal, file.TotalBytes);
+        _overallProgress.FileAdded(file.TotalBytes);
         _fileDefinitions.AddInstance(file);
         return file;
     }
@@ -99,10 +95,7 @@ public sealed class DownloadSession : IDownloadSession
         return (totalBytes, acceptsRange);
     }
 
-    public IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions)
-        => AddDownloads(definitions, CancellationToken.None);
-
-    public IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions, CancellationToken token)
+    public IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions, CancellationToken? token = null)
         => definitions
             .AsParallel()
             .WithDegreeOfParallelism(MaxConcurrency)
@@ -161,11 +154,11 @@ public sealed class DownloadSession : IDownloadSession
     {
         if (file.CheckAndSetStarted())
         {
-            _overallProgress.ActiveFilesInternal.TryAdd(file.Id, file);
+            _overallProgress.FileStarted(file);
             OnFileStarted?.Invoke(this, file);
         }
-        
-        Interlocked.Increment(ref file.Progress.ActiveThreadsInternal);
+
+        file.Progress.ThreadStarted();
         file.Writer.StartChunk(chunk.ChunkIndex);
         chunk.Progress.Started();
     }
@@ -179,15 +172,15 @@ public sealed class DownloadSession : IDownloadSession
     
     private void ChunkCompleted(FileInstance file, ChunkInstance chunk)
     {
+        file.Writer.FinalizeChunk(chunk.ChunkIndex);
         chunk.Status = Status.Complete;
         chunk.Progress.Finished();
-        file.Writer.FinalizeChunk(chunk.ChunkIndex);
         if (!file.CheckAndSetCompleted())
             return;
-        _overallProgress.ActiveFilesInternal.TryRemove(file.Id, out _);
-        Interlocked.Increment(ref _overallProgress.CompletedFilesInternal);
-        Interlocked.Increment(ref file.Progress.CompletedChunksInternal);
-        Interlocked.Decrement(ref file.Progress.ActiveThreadsInternal);
+        
+        _overallProgress.FileCompleted(file.Id);
+        file.Progress.ChunkCompleted();
+        file.Progress.ThreadFinished();
         
         OnFileEnded?.Invoke(this, file);
         if (!_fileDefinitions.AllFilesCompleted()) return;
@@ -242,7 +235,7 @@ public sealed class DownloadSession : IDownloadSession
             throw new("TODO - Non-SuccessfulStatusCode");
         
         ChunkStarted(file, chunk);
-        Interlocked.Increment(ref _overallProgress.ActiveThreadsInternal);
+        _overallProgress.ThreadStarted();
 
         var readStream = response.Content.ReadAsStream(_runningCancellationTokenSource.Token);
 
@@ -258,7 +251,7 @@ public sealed class DownloadSession : IDownloadSession
             buffer.TriggerTick();
         }
 
-        Interlocked.Decrement(ref _overallProgress.ActiveThreadsInternal);
+        _overallProgress.ThreadFinished();
         ChunkCompleted(file, chunk);
     }
 }

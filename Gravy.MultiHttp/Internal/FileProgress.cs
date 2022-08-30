@@ -6,8 +6,8 @@ internal struct FileProgress : IFileProgress
     public long TotalBytes { get; }
     public int TotalChunks { get; }
 
-    public int CompletedChunks => CompletedChunksInternal;
-    public int ActiveChunks => ActiveThreadsInternal;
+    public int CompletedChunks => _completedChunksInternal;
+    public int ActiveChunks => _activeThreadsInternal;
 
     public long CompletedBytes => _progressTracker.CompletedBytes;
     public double CurrentBytesPerSecond => _progressTracker.CurrentSpeed;
@@ -16,8 +16,8 @@ internal struct FileProgress : IFileProgress
     public int ElapsedMilliseconds => _progressTracker.ElapsedMilliseconds;
 
     private ProgressTracker _progressTracker;
-    internal int CompletedChunksInternal = 0;
-    internal int ActiveThreadsInternal = 0;
+    private int _completedChunksInternal = 0;
+    private int _activeThreadsInternal = 0;
 
     public FileProgress(IFileInstance instance, long totalBytes, int totalChunks)
     {
@@ -35,4 +35,13 @@ internal struct FileProgress : IFileProgress
     
     public void Finished()
         => _progressTracker.Finished();
+    
+    public void ChunkCompleted()
+        => Interlocked.Increment(ref _completedChunksInternal);
+
+    public void ThreadStarted()
+        => Interlocked.Increment(ref _activeThreadsInternal);
+
+    public void ThreadFinished()
+        => Interlocked.Decrement(ref _activeThreadsInternal);
 }

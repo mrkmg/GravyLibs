@@ -4,11 +4,11 @@ namespace Gravy.MultiHttp.Internal;
 
 internal struct OverallProgress : IOverallProgress
 {
-    public long TotalBytes => TotalBytesInternal;
-    public int TotalFiles => TotalFilesInternal;
-    public int CompletedFiles => CompletedFilesInternal;
-    public int ActiveThreads => ActiveThreadsInternal;
-    public IEnumerable<IFileInstance> ActiveFiles => ActiveFilesInternal.Values.ToArray();
+    public long TotalBytes => _totalBytesInternal;
+    public int TotalFiles => _totalFilesInternal;
+    public int CompletedFiles => _completedFilesInternal;
+    public int ActiveThreads => _activeThreadsInternal;
+    public IEnumerable<IFileInstance> ActiveFiles => _activeFilesInternal.Values.ToArray();
 
     public long CompletedBytes => _progressTracker.CompletedBytes;
     public double CurrentBytesPerSecond => _progressTracker.CurrentSpeed;
@@ -17,20 +17,20 @@ internal struct OverallProgress : IOverallProgress
     public int ElapsedMilliseconds => _progressTracker.ElapsedMilliseconds;
     
     private ProgressTracker _progressTracker;
-    
-    internal ConcurrentDictionary<Guid, FileInstance> ActiveFilesInternal { get; }
-    internal long TotalBytesInternal;
-    internal int TotalFilesInternal;
-    internal int CompletedFilesInternal;
-    internal int ActiveThreadsInternal;
+
+    private readonly ConcurrentDictionary<Guid, FileInstance> _activeFilesInternal;
+    private long _totalBytesInternal;
+    private int _totalFilesInternal;
+    private int _completedFilesInternal;
+    private int _activeThreadsInternal;
 
     public OverallProgress()
     {
-        TotalBytesInternal = 0;
-        TotalFilesInternal = 0;
-        CompletedFilesInternal = 0;
-        ActiveThreadsInternal = 0;
-        ActiveFilesInternal = new();
+        _totalBytesInternal = 0;
+        _totalFilesInternal = 0;
+        _completedFilesInternal = 0;
+        _activeThreadsInternal = 0;
+        _activeFilesInternal = new();
         _progressTracker = new();
     }
 
@@ -43,4 +43,30 @@ internal struct OverallProgress : IOverallProgress
     public void Finished()
         => _progressTracker.Finished();
 
+    public void FileAdded(long fileTotalBytes)
+    {
+        Interlocked.Increment(ref _totalFilesInternal);
+        Interlocked.Add(ref _totalBytesInternal, fileTotalBytes);
+    }
+
+    public void FileCompleted(Guid fileId)
+    {
+        Interlocked.Increment(ref _completedFilesInternal);
+        _activeFilesInternal.TryRemove(fileId, out _);
+    }
+
+    public void FileStarted(FileInstance file)
+    {
+        _activeFilesInternal.TryAdd(file.Id, file);
+    }
+    
+    public void ThreadStarted()
+    {
+        Interlocked.Increment(ref _activeThreadsInternal);
+    }
+    
+    public void ThreadFinished()
+    {
+        Interlocked.Decrement(ref _activeThreadsInternal);
+    }
 }

@@ -43,11 +43,10 @@ internal class HybridFileWriter : IFileWriter
 
     public void FinalizeChunk(int chunkIndex)
     {
-        
         lock (_writeLock)
         {
             if (_destination is null)
-                throw new InvalidOperationException(nameof(_destination));
+                throw new InvalidOperationException("The stream was disposed before all chunks were written.");
             
             _destination?.Seek(_instance.ChunksInternal[chunkIndex].StartByte, SeekOrigin.Begin);
             _destination?.Write(_chunks[chunkIndex].Span);

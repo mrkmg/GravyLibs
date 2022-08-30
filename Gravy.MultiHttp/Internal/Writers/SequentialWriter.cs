@@ -5,6 +5,7 @@ internal class SequentialWriter : IFileWriter
     private readonly FileInstance _instance;
     private readonly object _fileLock = new();
     private FileStream? _stream;
+    private int _currentChunk = -1;
     
     public SequentialWriter(FileInstance instance)
     {
@@ -23,10 +24,14 @@ internal class SequentialWriter : IFileWriter
 
     public void StartChunk(int chunkIndex)
     {
+        _currentChunk = chunkIndex;
     }
 
     public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
+        if (_currentChunk != chunkIndex)
+            throw new InvalidOperationException("Cannot write to a chunk that is not the current chunk.");
+        
         lock (_fileLock)
         {
             _stream?.Write(buffer.Span);
@@ -35,6 +40,7 @@ internal class SequentialWriter : IFileWriter
 
     public void FinalizeChunk(int chunkIndex)
     {
+        _currentChunk = -1;
     }
 
     public void FinalizeFile()

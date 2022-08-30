@@ -8,7 +8,7 @@
 
     <PropertyGroup>
         <PackageId>Gravy.MultiHttp</PackageId>
-        <Version>0.3.0</Version>
+        <Version>0.4.0</Version>
         <Title>Gravy.MultiHttp</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>TODO</Description>

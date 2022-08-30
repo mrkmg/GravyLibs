@@ -4,13 +4,19 @@ internal class DirectWriter : IFileWriter
 {
     private readonly FileInstance _instance;
     private readonly object _fileLock = new();
-    private readonly int[] _chunkOffsets;
+    private readonly long[] _chunkOffsets;
     private FileStream? _stream;
     
     public DirectWriter(FileInstance instance)
     {
         _instance = instance;
-        _chunkOffsets = new int[instance.ChunksInternal.Length];
+        _chunkOffsets = new long[instance.ChunksInternal.Length];
+        var totalOffset = 0L;
+        for (var i = 0; i < instance.ChunksInternal.Length; i++)
+        {
+            _chunkOffsets[i] = totalOffset;
+            totalOffset += instance.ChunksInternal[i].TotalBytes;
+        }
     }
 
     public void StartFile()
@@ -23,10 +29,7 @@ internal class DirectWriter : IFileWriter
         _stream = File.OpenWrite(_instance.Definition.DestinationFilePath + ".tmp");
     }
 
-    public void StartChunk(int chunkIndex)
-    {
-        _chunkOffsets[chunkIndex] = 0;
-    }
+    public void StartChunk(int chunkIndex) { }
 
     public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
@@ -38,9 +41,7 @@ internal class DirectWriter : IFileWriter
         }
     }
 
-    public void FinalizeChunk(int chunkIndex)
-    {
-    }
+    public void FinalizeChunk(int chunkIndex) { }
 
     public void FinalizeFile()
     {

@@ -13,10 +13,8 @@ public interface IDownloadSession : IDisposable, IWaitable
     event EventHandler<(IFileInstance File, Exception Exception)>? OnFileError;
     
     bool IsRunning { get; }
-    IFileInstance AddDownload(IDownloadDefinition definition);
-    IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken token);
-    IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions);
-    IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions, CancellationToken token);
+    IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken? token =  null);
+    IEnumerable<IFileInstance> AddDownloads(IEnumerable<IDownloadDefinition> definitions, CancellationToken? token = null);
     void Start();
     void Stop();
     Task StartAsync();
