@@ -106,8 +106,10 @@ public static class MetaStringConsoleFormat
             textWriter.SetMode(Mode.Reset);
             return;
         }
-
-        if (!AreColorsEquivalent(toFormat.BackgroundColor, fromFormat.BackgroundColor))
+        
+        var modes = new List<Mode>();
+        
+        if (!toFormat.BackgroundColor.IsEquivalent(fromFormat.BackgroundColor))
         {
             if (toFormat.BackgroundColor.HasValue)
                 textWriter.SetBackgroundColor(toFormat.BackgroundColor.Value.ToAnsi());
@@ -115,7 +117,7 @@ public static class MetaStringConsoleFormat
                 textWriter.SetMode(Mode.BackgroundDefault);
         }
         
-        if (!AreColorsEquivalent(toFormat.ForegroundColor, fromFormat.ForegroundColor))
+        if (!toFormat.ForegroundColor.IsEquivalent(fromFormat.ForegroundColor))
         {
             if (toFormat.ForegroundColor.HasValue)
                 textWriter.SetForegroundColor(toFormat.ForegroundColor.Value.ToAnsi());
@@ -126,45 +128,43 @@ public static class MetaStringConsoleFormat
         switch (toFormat.Weight)
         {
             case FontWeight.Normal when fromFormat.Weight != FontWeight.Normal:
-                textWriter.SetMode(Mode.Normal);
+                modes.Add(Mode.Normal);
                 break;
             case FontWeight.Bold when fromFormat.Weight != FontWeight.Bold:
-                textWriter.SetMode(Mode.Bold);
+                modes.Add(Mode.Bold);
                 break;
             case FontWeight.Light when fromFormat.Weight != FontWeight.Light:
-                textWriter.SetMode(Mode.Faint);
+                modes.Add(Mode.Faint);
                 break;
         }
 
-        var modes = new List<int>();
-
         if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
-            modes.Add((int)Mode.Italic);
+            modes.Add(Mode.Italic);
         if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
-            modes.Add((int)Mode.NoItalic);
+            modes.Add(Mode.NoItalic);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
-            modes.Add((int)Mode.Underline);
+            modes.Add(Mode.Underline);
         if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
-            modes.Add((int)Mode.NoUnderline);
+            modes.Add(Mode.NoUnderline);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
-            modes.Add((int)Mode.Blink);
+            modes.Add(Mode.Blink);
         if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
-            modes.Add((int)Mode.NoBlink);
+            modes.Add(Mode.NoBlink);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
-            modes.Add((int)Mode.Inverse);
+            modes.Add(Mode.Inverse);
         if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
-            modes.Add((int)Mode.NoInverse);
+            modes.Add(Mode.NoInverse);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-            modes.Add((int)Mode.StrikeThrough);
+            modes.Add(Mode.StrikeThrough);
         if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-            modes.Add((int)Mode.NoStrikeThrough);
+            modes.Add(Mode.NoStrikeThrough);
 
         if (modes.Count > 0)
-            textWriter.SetMode(modes.Select(x => (Mode)x).ToArray());
+            textWriter.SetMode(modes.ToArray());
     } 
     
     public static string ToTaggedString(this ConsoleString cs, bool useReset = false)
@@ -280,8 +280,5 @@ public static class MetaStringConsoleFormat
         if (last is {} l)
             yield return l;
     }
-    
-    internal static bool AreColorsEquivalent(Color? color1, Color? color2)
-        => (color1 is null && color2 is null) || (color1 is not null && color2 is not null && color1.Value.ToArgb() == color2.Value.ToArgb()); 
 
 }

@@ -129,9 +129,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         while (true)
         {
-            var timeout = millisecondsTimeout - Environment.TickCount + start;
-            if (timeout < 0) throw new LeaseTimeoutException(timeout);
-
+            var timeout = -1;
+            if (millisecondsTimeout != -1)
+            {
+                timeout = millisecondsTimeout - Environment.TickCount + start;
+                if (timeout < 0) throw new LeaseTimeoutException(timeout);
+            }
             var item =  await _objects.DoAsync(timeout, token, objects => objects.TryGetNewest(out var i) ? i.Object : null);
             if (item is not null)
             {

@@ -53,8 +53,8 @@ public readonly struct ConsoleFormat : IMetaDebuggable<ConsoleFormat>
     public ConsoleFormat WithoutStrikeThrough() => WithoutStyle(FontStyle.StrikeThrough);
     
     public bool Equals(ConsoleFormat other) 
-        => MetaStringConsoleFormat.AreColorsEquivalent(ForegroundColor, other.ForegroundColor) && 
-           MetaStringConsoleFormat.AreColorsEquivalent(BackgroundColor, other.BackgroundColor) && 
+        => ForegroundColor.IsEquivalent(other.ForegroundColor) && 
+           BackgroundColor.IsEquivalent(other.BackgroundColor) && 
            Weight == other.Weight && Styles == other.Styles;
 
     public string DebugString(MetaString<ConsoleFormat> metaString) => metaString.ToTaggedString(true);

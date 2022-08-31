@@ -30,6 +30,9 @@ public static class ConsoleStringExtensions
     
     internal static string ToHex(this Color color)
         => color.A == 0 ? color.ToArgb().ToString("X6") : color.ToArgb().ToString("X8");
+    
+    internal static bool IsEquivalent(this Color? color1, Color? color2)
+        => (color1 is null && color2 is null) || (color1 is not null && color2 is not null && color1.Value.ToArgb() == color2.Value.ToArgb()); 
 
     public static string ToCsColor(this Color color)
     {

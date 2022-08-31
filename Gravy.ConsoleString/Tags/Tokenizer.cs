@@ -39,7 +39,7 @@ internal class Tokenizer
             { 
                 case TokenizerState.Text:
                     ParseTextChar();
-                    Index++;
+                    MoveNext();
                     break;
                 
                 case TokenizerState.TextFinished:
@@ -54,12 +54,12 @@ internal class Tokenizer
                 
                 case TokenizerState.ParseStartTag:
                     ParseStartTag();
-                    Index++;
+                    MoveNext();
                     break;
                 
                 case TokenizerState.ParseStopTag:
                     ParseStopTag();
-                    Index++;
+                    MoveNext();
                     break;
                 
                 case TokenizerState.ResetAll:
@@ -160,7 +160,6 @@ internal class Tokenizer
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            CurrentColumn++;
         }
         if (State != TokenizerState.Text)
             throw new UnexpectedEndOfStringException(CurrentLine, CurrentColumn);
@@ -168,13 +167,40 @@ internal class Tokenizer
             yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
     }
 
+    private void MoveNext()
+    {
+        Index++;
+        CurrentColumn++;
+        if (Index >= SourceText.Length || Char is not ('\r' or '\n'))
+            return;
+        
+        Buffer.Add(Char);
+        // Handle windows line endings (do not count \r\n as two lines)
+        if (Char is '\r' && PeekNextChar() is '\n')
+        {
+            Buffer.Add(PeekNextChar()!.Value);
+            Index++;
+        }
+        Index++;
+        CurrentColumn = 1;
+        CurrentLine++;
+    }
+
+    private void MoveTo(int index)
+    {
+        if (index == Index) return;
+        if (index < Index) throw new InvalidOperationException("Cannot move backwards");
+        while (index > Index)
+            MoveNext();
+    }
+
     private void ParseTextChar()
     {
         switch (Char)
         {
             case '\\':
+                MoveNext();
                 Buffer.Add(Char);
-                Index++;
                 break;
             case '[':
                 State = TokenizerState.TextFinished;
@@ -183,22 +209,11 @@ internal class Tokenizer
                 if (PeekNextChar() is '/')
                 {
                     TargetState = TokenizerState.ParseStopTag;
-                    Index++;
+                    MoveNext();
                 }
                 else
                 {
                     TargetState = TokenizerState.ParseStartTag;
-                }
-                break;
-            case '\r' or '\n':
-                CurrentLine++;
-                CurrentColumn = 0;
-                Buffer.Add(Char);
-                // Handle windows line endings (do not count \r\n as two lines)
-                if (Char is '\r' && PeekNextChar() is '\n')
-                {
-                    Index++;
-                    Buffer.Add(Char);
                 }
                 break;
             default:
@@ -224,7 +239,7 @@ internal class Tokenizer
             '!' => ReadColorNameValue(SourceText[(Index+1)..nextIndex]),
             _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
         };
-        Index = nextIndex;
+        MoveTo(nextIndex);
         return color;
     }
         
@@ -292,7 +307,7 @@ internal class Tokenizer
     {
         if (Char != ']')
             throw new MissingCloseBracketException(CurrentLine, CurrentColumn);
-        Index++;
+        MoveNext();
         State = TokenizerState.Text;
     }
     

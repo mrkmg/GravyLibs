@@ -32,7 +32,7 @@ public class SimpleUsage
     public void ComplexString()
     { 
         var cs = new ConsoleString("Test", new(Red, Blue, FontWeight.Bold, FontStyle.Italic));
-        Assert.That(cs.ToAnsiString(), Is.EqualTo("\x1b[48;2;0;0;255m\x1b[38;2;255;0;0m\x1b[1m\x1b[3mTest\x1b[0m"));
+        Assert.That(cs.ToAnsiString(), Is.EqualTo("\x1b[48;2;0;0;255m\x1b[38;2;255;0;0m\x1b[1;3mTest\x1b[0m"));
     }
 
     [Test]
@@ -40,7 +40,7 @@ public class SimpleUsage
     {
         var cs = "test".CS().FG(Blue).BG(Green).WithBold() +
                  "test".CS().FG(Red).WithUnderline();
-        Assert.That(cs.ToAnsiString(), Is.EqualTo("\x1b[48;2;0;128;0m\x1b[38;2;0;0;255m\x1b[1mtest\x1b[49m\x1b[38;2;255;0;0m\x1b[22m\x1b[4mtest\x1b[0m"));
+        Assert.That(cs.ToAnsiString(), Is.EqualTo("\x1b[48;2;0;128;0m\x1b[38;2;0;0;255m\x1b[1mtest\x1b[49m\x1b[38;2;255;0;0m\x1b[22;4mtest\x1b[0m"));
         
     }
 

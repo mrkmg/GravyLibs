@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -43,7 +44,8 @@ public static class AnsiCodeWriter
 
     public static void EraseLineFromCursor(this TextWriter w) => w.Write($"{Codes.Escape}[0K");
 
-    public static void SetMode(this TextWriter w, params Mode[] modes) => w.Write($"{Codes.Escape}[{string.Join(";", modes.AsEnumerable().Select(m => (int)m))}h");
+    public static void SetMode(this TextWriter w, params Mode[] modes) => SetMode(w, (IEnumerable<Mode>)modes);
+    public static void SetMode(this TextWriter w, IEnumerable<Mode> modes) => w.Write($"{Codes.Escape}[{string.Join(";", modes.AsEnumerable().Select(m => (int)m))}m");
 
     private static void SetColorColor(this TextWriter w, Mode mode, AnsiColor color) => w.Write($"{Codes.Escape}[{(byte)mode};2;{color.R};{color.G};{color.B}m");
 
