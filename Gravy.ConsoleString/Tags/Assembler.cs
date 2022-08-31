@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using Gravy.MetaString;
@@ -22,9 +23,9 @@ internal class Assembler
             .Where(sv => sv.Value.Count > 0)
             .Select(sv => sv.Key)
             .Aggregate(FontStyle.None, (current, style) => current | style);
-    private FontWeight CurrentFontWeight => WeightStack.Count > 0 ? WeightStack.Peek().Value : FontWeight.Normal;
-    private Color? CurrentForeground => ForegroundStack.Count > 0 ? ForegroundStack.Peek().Value : null;
-    private Color? CurrentBackground => BackgroundStack.Count > 0 ? BackgroundStack.Peek().Value : null;
+    private FontWeight CurrentFontWeight => WeightStack.Count > 0 ? WeightStack.Peek().FontWeight : FontWeight.Normal;
+    private Color? CurrentForeground => ForegroundStack.Count > 0 ? ForegroundStack.Peek().Color : null;
+    private Color? CurrentBackground => BackgroundStack.Count > 0 ? BackgroundStack.Peek().Color : null;
     private ConsoleFormat CurrentFormat => new(CurrentForeground, CurrentBackground, CurrentFontWeight, CurrentFontStyle);
 
     private Assembler(bool strictMode)
@@ -41,50 +42,59 @@ internal class Assembler
             switch (token)
             {
                 case Token.TextToken textToken:
-                    yield return new(textToken.Value, CurrentFormat);
+                    yield return new(textToken.Text, CurrentFormat);
                     break;
+                    
                 case Token.BackgroundStartToken backgroundStartToken:
-                    if (StrictMode && BackgroundStack.TryPeek(out var backgroundTip) && backgroundTip.Value == backgroundStartToken.Value)
-                        throw new DuplicateColorException("Background", backgroundStartToken.Value, backgroundStartToken.Line, backgroundStartToken.Column);
+                    if (StrictMode && CurrentBackground is not null && CurrentBackground.Value == backgroundStartToken.Color)
+                        throw new DuplicateColorException("Background", backgroundStartToken.Color, backgroundStartToken.Line, backgroundStartToken.Column);
                     BackgroundStack.Push(backgroundStartToken);
                     break;
+                
                 case Token.ForegroundStartToken foregroundStartToken:
-                    if (StrictMode && BackgroundStack.TryPeek(out var foregroundTip) && foregroundTip.Value == foregroundStartToken.Value)
-                        throw new DuplicateColorException("Foreground", foregroundStartToken.Value, foregroundStartToken.Line, foregroundStartToken.Column);
+                    if (StrictMode && CurrentForeground is not null && CurrentForeground.Value == foregroundStartToken.Color)
+                        throw new DuplicateColorException("Foreground", foregroundStartToken.Color, foregroundStartToken.Line, foregroundStartToken.Column);
                     ForegroundStack.Push(foregroundStartToken);
                     break;
+                
                 case Token.WeightStartToken weightStartToken:
-                    if (StrictMode && WeightStack.TryPeek(out var weightTip) && weightTip.Value == weightStartToken.Value)
-                        throw new DuplicateWeightException(weightStartToken.Value, weightStartToken.Line, weightStartToken.Column);
+                    if (StrictMode && CurrentFontWeight == weightStartToken.FontWeight)
+                        throw new DuplicateWeightException(weightStartToken.FontWeight, weightStartToken.Line, weightStartToken.Column);
                     WeightStack.Push(weightStartToken);
                     break;
+                
                 case Token.StyleStartToken styleStartToken:
-                    if (StrictMode && FontStyleCounts[styleStartToken.Value].Count > 0)
-                        throw new DuplicateStyleException(styleStartToken.Value, styleStartToken.Line, styleStartToken.Column);
-                    FontStyleCounts[styleStartToken.Value].Push(styleStartToken);
+                    if (StrictMode && FontStyleCounts[styleStartToken.FontStyle].Count > 0)
+                        throw new DuplicateStyleException(styleStartToken.FontStyle, styleStartToken.Line, styleStartToken.Column);
+                    FontStyleCounts[styleStartToken.FontStyle].Push(styleStartToken);
                     break;
+                
                 case Token.BackgroundStopToken:
                     if (StrictMode && BackgroundStack.Count == 0)
-                        throw new UnmatchedStopTokenException(token.Line, token.Column);
+                        throw new UnmatchedStopTokenException("Background", token.Line, token.Column);
                     BackgroundStack.TryPop(out _);
                     break;
+                
                 case Token.ForegroundStopToken:
                     if (StrictMode && ForegroundStack.Count == 0)
-                        throw new UnmatchedStopTokenException(token.Line, token.Column);
+                        throw new UnmatchedStopTokenException("Foreground", token.Line, token.Column);
                     ForegroundStack.TryPop(out _);
                     break;
-                case Token.WeightStopToken stopToken:
+                
+                case Token.WeightStopToken weightStopToken:
                     if (StrictMode && WeightStack.Count == 0) 
-                        throw new UnmatchedStopTokenException(stopToken.Line, stopToken.Column);
-                    if (WeightStack.Count > 0 && WeightStack.Peek().Value != stopToken.Value)
-                        throw new UnmatchedStopTokenException(stopToken.Line, stopToken.Column);
+                        throw new UnmatchedStopTokenException(weightStopToken.FontWeight.ToString(), weightStopToken.Line, weightStopToken.Column);
+                    if (WeightStack.Count > 0 && CurrentFontWeight != weightStopToken.FontWeight)
+                        throw new UnmatchedStopTokenException(weightStopToken.FontWeight.ToString(), weightStopToken.Line, weightStopToken.Column);
                     WeightStack.TryPop(out _);
                     break;
+                
                 case Token.StyleStopToken styleStopToken:
-                    if (StrictMode && FontStyleCounts[styleStopToken.Value].Count == 0)
-                        throw new UnmatchedStopTokenException(styleStopToken.Line, styleStopToken.Column);
-                    FontStyleCounts[styleStopToken.Value].TryPop(out _);
+                    if (StrictMode && FontStyleCounts[styleStopToken.FontStyle].Count == 0)
+                        throw new UnmatchedStopTokenException(styleStopToken.FontStyle.ToString(), styleStopToken.Line, styleStopToken.Column);
+                    FontStyleCounts[styleStopToken.FontStyle].TryPop(out _);
                     break;
+                
                 case Token.ResetAllToken:
                     // No reset in strict mode.
                     if (StrictMode)
@@ -95,8 +105,10 @@ internal class Assembler
                     foreach (var style in Enum.GetValues<FontStyle>())
                         FontStyleCounts[style].Clear();
                     break;
+                
                 default:
-                    throw new ArgumentOutOfRangeException($"Unknown Token type: {token.GetType().Name}");
+                    Debug.Fail("Unexpected token type.");
+                    break;
             }
         }
 

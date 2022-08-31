@@ -3,75 +3,154 @@ using System.Drawing;
 
 namespace Gravy.ConsoleString.Tags;
 
-internal class Token
+// ReSharper disable once InconsistentNaming
+internal interface Token
 {
-    private readonly object? _value;
     public int Line { get; }
     public int Column { get; }
-
-    private Token(object? value, int line, int column)
-    {
-        _value = value;
-        Line = line;
-        Column = column;
-    }
     
-    public static TextToken Text(string value, int line, int column) => new(value, line, column);
-    public static ForegroundStartToken ForegroundStart(Color value, int line, int column) => new(value, line, column);
-    public static BackgroundStartToken BackgroundStart(Color value, int line, int column) => new(value, line, column);
+    public static TextToken Text(string text, int line, int column) => new(text, line, column);
+    public static ForegroundStartToken ForegroundStart(Color color, int line, int column) => new(color, line, column);
+    public static BackgroundStartToken BackgroundStart(Color color, int line, int column) => new(color, line, column);
     public static ForegroundStopToken ForegroundStop(int line, int column) => new(line, column);
     public static BackgroundStopToken BackgroundStop(int line, int column) => new(line, column);
-    public static StyleStartToken StyleStart(FontStyle value, int line, int column) => new(value, line, column);
-    public static StyleStopToken StyleStop(FontStyle value, int line, int column) => new(value, line, column);
-    public static WeightStartToken WeightStart(FontWeight value, int line, int column) => new(value, line, column);
-    public static WeightStopToken WeightStop(FontWeight value, int line, int column) => new(value, line, column);
+    public static StyleStartToken StyleStart(FontStyle fontStyle, int line, int column) => new(fontStyle, line, column);
+    public static StyleStopToken StyleStop(FontStyle fontStyle, int line, int column) => new(fontStyle, line, column);
+    public static WeightStartToken WeightStart(FontWeight fontWeight, int line, int column) => new(fontWeight, line, column);
+    public static WeightStopToken WeightStop(FontWeight fontWeight, int line, int column) => new(fontWeight, line, column);
     public static ResetAllToken ResetAll(int line, int column) => new(line, column);
     
-    public class TextToken : Token
+    public struct TextToken : Token
     {
-        public string Value => (string)(_value ?? throw new InvalidOperationException($"TextToken should have a value"));
-        public TextToken(string value, int line, int column) : base(value, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public string Text { get; }
+
+        public TextToken(string text, int line, int column)
+        {
+            Text = text;
+            Line = line;
+            Column = column;
+        }
     }
-    public class ForegroundStartToken : Token
+    
+    public struct ForegroundStartToken : Token
     {
-        public Color Value => (Color)(_value ?? throw new InvalidOperationException($"ForegroundStartToken should have a value"));
-        public ForegroundStartToken(Color color, int line, int column) : base(color, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public Color Color { get; }
+
+        public ForegroundStartToken(Color color, int line, int column)
+        {
+            Color = color;
+            Line = line;
+            Column = column;
+        }
     }
-    public class BackgroundStartToken : Token
+    
+    public struct BackgroundStartToken : Token
     {
-        public Color Value => (Color)(_value ?? throw new InvalidOperationException($"BackgroundStartToken should have a value"));
-        public BackgroundStartToken(Color color, int line, int column) : base(color, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public Color Color { get; }
+
+        public BackgroundStartToken(Color color, int line, int column)
+        {
+            Color = color;
+            Line = line;
+            Column = column;
+        }
     }
-    public class ForegroundStopToken : Token
+    
+    public struct ForegroundStopToken : Token
     {
-        public ForegroundStopToken(int line, int column) : base(null, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+
+        public ForegroundStopToken(int line, int column)
+        {
+            Line = line;
+            Column = column;
+        }
     }
-    public class BackgroundStopToken : Token
+    
+    public struct BackgroundStopToken : Token
     {
-        public BackgroundStopToken(int line, int column) : base(null, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+
+        public BackgroundStopToken(int line, int column)
+        {
+            Line = line;
+            Column = column;
+        }
     }
-    public class StyleStartToken : Token
+    
+    public struct StyleStartToken : Token
     {
-        public FontStyle Value => (FontStyle)(_value ?? throw new InvalidOperationException($"StyleStartToken should have a value"));
-        public StyleStartToken(FontStyle style, int line, int column) : base(style, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public FontStyle FontStyle { get; }
+
+        public StyleStartToken(FontStyle style, int line, int column)
+        {
+            FontStyle = style;
+            Line = line;
+            Column = column;
+        }
     }
-    public class StyleStopToken : Token
+    
+    public struct StyleStopToken : Token
     {
-        public FontStyle Value => (FontStyle)(_value ?? throw new InvalidOperationException($"StyleStopToken should have a value"));
-        public StyleStopToken(FontStyle style, int line, int column) : base(style, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public FontStyle FontStyle { get; }
+
+        public StyleStopToken(FontStyle style, int line, int column)
+        {
+            FontStyle = style;
+            Line = line;
+            Column = column;
+        }
     }
-    public class WeightStartToken : Token
+    
+    public struct WeightStartToken : Token
     {
-        public FontWeight Value => (FontWeight)(_value ?? throw new InvalidOperationException($"WeightStartToken should have a value"));
-        public WeightStartToken(FontWeight weight, int line, int column) : base(weight, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public FontWeight FontWeight { get; }
+        
+        public WeightStartToken(FontWeight weight, int line, int column)
+        {
+            FontWeight = weight;
+            Line = line;
+            Column = column;
+        }
     }
-    public class WeightStopToken : Token
+    
+    public struct WeightStopToken : Token
     {
-        public FontWeight Value => (FontWeight)(_value ?? throw new InvalidOperationException($"WeightStopToken should have a value"));
-        public WeightStopToken(FontWeight weight, int line, int column) : base(weight, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+        public FontWeight FontWeight { get; }
+        
+        public WeightStopToken(FontWeight weight, int line, int column)
+        {
+            FontWeight = weight;
+            Line = line;
+            Column = column;
+        }
     }
-    public class ResetAllToken : Token
+    
+    public struct ResetAllToken : Token
     {
-        public ResetAllToken(int line, int column) : base(null, line, column) { }
+        public int Line { get; }
+        public int Column { get; }
+
+        public ResetAllToken(int line, int column)
+        {
+            Line = line;
+            Column = column;
+        }
     }
 }

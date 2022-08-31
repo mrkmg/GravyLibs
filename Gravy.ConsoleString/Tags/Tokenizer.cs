@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 
@@ -13,6 +14,7 @@ internal class Tokenizer
     private int Index;
     private readonly List<char> Buffer = new();
     private TokenizerState State = TokenizerState.Text;
+    private TokenizerState? TargetState = null;
     private int CurrentLine = 1;
     private int CurrentColumn = 1;
     private int TokenStartLine = 1;
@@ -36,131 +38,125 @@ internal class Tokenizer
             switch (State)
             { 
                 case TokenizerState.Text:
-                    switch (Char)
-                    {
-                        case '\\':
-                            Buffer.Add(PeekNextChar() ?? throw new UnexpectedEndOfStringException(CurrentLine, CurrentColumn));
-                            Index++;
-                            break;
-                        case '[':
-                            TokenStartColumn = CurrentColumn;
-                            TokenStartLine = CurrentLine;
-                            if (PeekNextChar() is '/')
-                            {
-                                State = TokenizerState.ParseStopTag;
-                                Index++;
-                            }
-                            else
-                            {
-                                State = TokenizerState.ParseStartTag;
-                            }
-                            if (Buffer.Count == 0)
-                                break;
-                            yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
-                            Buffer.Clear();
-                            break;
-                        case '\r' or '\n':
-                            CurrentLine++;
-                            CurrentColumn = 0;
-                            Buffer.Add(Char);
-                            // Handle windows line endings (do not count \r\n as two lines)
-                            if (Char is '\r' && PeekNextChar() is '\n')
-                            {
-                                Index++;
-                                Buffer.Add(Char);
-                            }
-                            break;
-                        default:
-                            Buffer.Add(Char);
-                            break;
-                            
-                    }
+                    ParseTextChar();
                     Index++;
                     break;
+                
+                case TokenizerState.TextFinished:
+                    Debug.Assert(TargetState is not null);
+                    State = TargetState.Value;
+                    TargetState = null;
+                    if (Buffer.Count == 0)
+                        break;
+                    yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
+                    Buffer.Clear();
+                    break;
+                
                 case TokenizerState.ParseStartTag:
                     ParseStartTag();
                     Index++;
                     break;
+                
                 case TokenizerState.ParseStopTag:
                     ParseStopTag();
                     Index++;
                     break;
+                
                 case TokenizerState.ResetAll:
                     yield return Token.ResetAll(TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartForeground:
                     yield return Token.ForegroundStart(ReadCurrentColor(), TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartBackground:
                     yield return Token.BackgroundStart(ReadCurrentColor(), TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartBold:
                     yield return Token.WeightStart(FontWeight.Bold, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartLight:
                     yield return Token.WeightStart(FontWeight.Light, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartItalic:
                     yield return Token.StyleStart(FontStyle.Italic, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartUnderline:
                     yield return Token.StyleStart(FontStyle.Underline, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartBlink:
                     yield return Token.StyleStart(FontStyle.Blink, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartInverse:
                     yield return Token.StyleStart(FontStyle.Inverse, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StartStrikeThrough:
                     yield return Token.StyleStart(FontStyle.StrikeThrough, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopForeground:
                     yield return Token.ForegroundStop(TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopBackground:
                     yield return Token.BackgroundStop(TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopBold:
                     yield return Token.WeightStop(FontWeight.Bold, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopLight:
                     yield return Token.WeightStop(FontWeight.Light, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopItalic:
                     yield return Token.StyleStop(FontStyle.Italic, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopUnderline:
                     yield return Token.StyleStop(FontStyle.Underline, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopBlink:
                     yield return Token.StyleStop(FontStyle.Blink, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 case TokenizerState.StopInverse:
                     yield return Token.StyleStop(FontStyle.Inverse, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                    
                 case TokenizerState.StopStrikeThrough:
                     yield return Token.StyleStop(FontStyle.StrikeThrough, TokenStartLine, TokenStartColumn);
                     CloseToken();
                     break;
+                
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -170,6 +166,46 @@ internal class Tokenizer
             throw new UnexpectedEndOfStringException(CurrentLine, CurrentColumn);
         if (Buffer.Count > 0)
             yield return Token.Text(Text, TokenStartLine, TokenStartColumn);
+    }
+
+    private void ParseTextChar()
+    {
+        switch (Char)
+        {
+            case '\\':
+                Buffer.Add(Char);
+                Index++;
+                break;
+            case '[':
+                State = TokenizerState.TextFinished;
+                TokenStartColumn = CurrentColumn;
+                TokenStartLine = CurrentLine;
+                if (PeekNextChar() is '/')
+                {
+                    TargetState = TokenizerState.ParseStopTag;
+                    Index++;
+                }
+                else
+                {
+                    TargetState = TokenizerState.ParseStartTag;
+                }
+                break;
+            case '\r' or '\n':
+                CurrentLine++;
+                CurrentColumn = 0;
+                Buffer.Add(Char);
+                // Handle windows line endings (do not count \r\n as two lines)
+                if (Char is '\r' && PeekNextChar() is '\n')
+                {
+                    Index++;
+                    Buffer.Add(Char);
+                }
+                break;
+            default:
+                Buffer.Add(Char);
+                break;
+
+        }
     }
 
     private char? PeekNextChar()
@@ -281,6 +317,7 @@ internal class Tokenizer
     private enum TokenizerState
     {
         Text,
+        TextFinished,
         ParseStartTag,
         ParseStopTag,
         ResetAll,
