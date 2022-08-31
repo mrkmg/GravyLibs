@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
+using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
 
-[DebuggerDisplay("{DebugDisplay()}")]
-public readonly struct ConsoleFormat
+public readonly struct ConsoleFormat : IMetaDebuggable<ConsoleFormat>
 {
     public static readonly ConsoleFormat Default = new();
     
@@ -59,27 +57,12 @@ public readonly struct ConsoleFormat
            MetaStringConsoleFormat.AreColorsEquivalent(BackgroundColor, other.BackgroundColor) && 
            Weight == other.Weight && Styles == other.Styles;
 
+    public string DebugString(MetaString<ConsoleFormat> metaString) => metaString.ToTaggedString(true);
+
     public override bool Equals(object? obj)
         => obj is ConsoleFormat other && Equals(other);
 
     public override int GetHashCode()
         => HashCode.Combine(ForegroundColor, BackgroundColor, (int)Weight, (int)Styles);
-
-    public override string ToString()
-        => DebugDisplay();
     
-    [DebuggerHidden]
-    private string DebugDisplay()
-    {
-        var attributes = new List<string>();
-        if (ForegroundColor is {} f) attributes.Add("FG=" + f.ToCsColor());
-        if (BackgroundColor is {} b) attributes.Add("BG=" + b.ToCsColor());
-        if (Weight != FontWeight.Normal) attributes.Add("W=" + Weight);
-        if (Styles.HasFlag(FontStyle.Underline)) attributes.Add("U");
-        if (Styles.HasFlag(FontStyle.Italic)) attributes.Add("I");
-        if (Styles.HasFlag(FontStyle.StrikeThrough)) attributes.Add("S");
-        if (Styles.HasFlag(FontStyle.Blink)) attributes.Add("L");
-        if (Styles.HasFlag(FontStyle.Inverse)) attributes.Add("V");
-        return "ConsoleFormat(" + string.Join(", ", attributes) + ")";
-    }
 }

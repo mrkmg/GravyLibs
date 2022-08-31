@@ -2,6 +2,11 @@
 
 namespace Gravy.MetaString;
 
+public interface IMetaDebuggable<T>
+{
+    string DebugString(MetaString<T> metaString);
+}
+
 [DebuggerDisplay("{DebuggerDisplay}")]
 public partial class MetaString<T>
 {
@@ -96,5 +101,8 @@ public partial class MetaString<T>
         return (entryIndex, charIndex);
     }
     
-    private string DebuggerDisplay => string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data}]"));
+    private string DebuggerDisplay => 
+        MetaEntries.Length > 0 && MetaEntries[0].Data is IMetaDebuggable<T> metaDebuggable 
+            ? metaDebuggable.DebugString(this) 
+            : string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data}]"));
 }

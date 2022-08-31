@@ -14,7 +14,7 @@ internal class Tokenizer
     private int Index;
     private readonly List<char> Buffer = new();
     private TokenizerState State = TokenizerState.Text;
-    private TokenizerState? TargetState = null;
+    private TokenizerState? TargetState;
     private int CurrentLine = 1;
     private int CurrentColumn = 1;
     private int TokenStartLine = 1;

@@ -1,5 +1,4 @@
 using System.Drawing;
-using Ansi;
 using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;

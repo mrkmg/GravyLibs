@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
-using Ansi;
 using Gravy.ConsoleString.Tags;
 using Gravy.MetaString;
 
@@ -77,97 +77,114 @@ public static class MetaStringConsoleFormat
     
     public static string EscapeTags(this string str) => string.Join(@"\[", str.Split('['));
     
-    public static string ToAnsiString(this ConsoleString cs)
+    public static void WriteAnsiTo(this ConsoleString cs, TextWriter writer)
     {
         if (!cs.MetaData.Any())
-            return string.Empty;
+            return;
 
-        void WriteFormatDiff(StringBuilder sb, ConsoleFormat fromFormat, ConsoleFormat toFormat)
-        {
-            if (toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
-            {
-                sb.SetMode(Mode.Reset);
-                return;
-            }
-
-            if (!AreColorsEquivalent(toFormat.BackgroundColor, fromFormat.BackgroundColor))
-            {
-                if (toFormat.BackgroundColor.HasValue)
-                    sb.SetBackgroundColor(toFormat.BackgroundColor.Value.ToAnsi());
-                else
-                    sb.SetMode(Mode.BackgroundDefault);
-            }
-            
-            if (!AreColorsEquivalent(toFormat.ForegroundColor, fromFormat.ForegroundColor))
-            {
-                if (toFormat.ForegroundColor.HasValue)
-                    sb.SetForegroundColor(toFormat.ForegroundColor.Value.ToAnsi());
-                else
-                    sb.SetMode(Mode.ForegroundDefault);
-            }
-            
-            switch (toFormat.Weight)
-            {
-                case FontWeight.Normal when fromFormat.Weight != FontWeight.Normal:
-                    sb.SetMode(Mode.Normal);
-                    break;
-                case FontWeight.Bold when fromFormat.Weight != FontWeight.Bold:
-                    sb.SetMode(Mode.Bold);
-                    break;
-                case FontWeight.Light when fromFormat.Weight != FontWeight.Light:
-                    sb.SetMode(Mode.Faint);
-                    break;
-            }
-
-            var modes = new List<int>();
-
-            if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
-                modes.Add((int)Mode.Italic);
-            if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
-                modes.Add((int)Mode.NoItalic);
-                
-            if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
-                modes.Add((int)Mode.Underline);
-            if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
-                modes.Add((int)Mode.NoUnderline);
-                
-            if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
-                modes.Add((int)Mode.Blink);
-            if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
-                modes.Add((int)Mode.NoBlink);
-                
-            if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
-                modes.Add((int)Mode.Inverse);
-            if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
-                modes.Add((int)Mode.NoInverse);
-                
-            if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-                modes.Add(9); // ANSI package does not have a strike through mode
-            if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-                modes.Add(29); // ANSI package does not have a strike through mode
-
-            if (modes.Count > 0)
-                sb.SetMode(modes.Select(x => (Mode)x).ToArray());
-        } 
-        
         var currentFormat = ConsoleFormat.Default;
-        var sb = new StringBuilder();
         foreach (var entry in cs.MetaData)
         {
-            WriteFormatDiff(sb, currentFormat, entry.Data);
-            sb.Append(entry.Text);
+            WriteFormatDiff(writer, currentFormat, entry.Data);
+            writer.Write(entry.Text);
             currentFormat = entry.Data;
         }
-        WriteFormatDiff(sb, currentFormat, ConsoleFormat.Default);
-        return sb.ToString();
+        WriteFormatDiff(writer, currentFormat, ConsoleFormat.Default);
     }
+    
+    public static string ToAnsiString(this ConsoleString cs)
+    {
+        var writer = new StringWriter();
+        cs.WriteAnsiTo(writer);
+        return writer.ToString();
+    }
+    
+    private static void WriteFormatDiff(TextWriter textWriter, ConsoleFormat fromFormat, ConsoleFormat toFormat)
+    {
+        if (toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
+        {
+            textWriter.SetMode(Mode.Reset);
+            return;
+        }
+
+        if (!AreColorsEquivalent(toFormat.BackgroundColor, fromFormat.BackgroundColor))
+        {
+            if (toFormat.BackgroundColor.HasValue)
+                textWriter.SetBackgroundColor(toFormat.BackgroundColor.Value.ToAnsi());
+            else
+                textWriter.SetMode(Mode.BackgroundDefault);
+        }
+        
+        if (!AreColorsEquivalent(toFormat.ForegroundColor, fromFormat.ForegroundColor))
+        {
+            if (toFormat.ForegroundColor.HasValue)
+                textWriter.SetForegroundColor(toFormat.ForegroundColor.Value.ToAnsi());
+            else
+                textWriter.SetMode(Mode.ForegroundDefault);
+        }
+        
+        switch (toFormat.Weight)
+        {
+            case FontWeight.Normal when fromFormat.Weight != FontWeight.Normal:
+                textWriter.SetMode(Mode.Normal);
+                break;
+            case FontWeight.Bold when fromFormat.Weight != FontWeight.Bold:
+                textWriter.SetMode(Mode.Bold);
+                break;
+            case FontWeight.Light when fromFormat.Weight != FontWeight.Light:
+                textWriter.SetMode(Mode.Faint);
+                break;
+        }
+
+        var modes = new List<int>();
+
+        if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
+            modes.Add((int)Mode.Italic);
+        if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
+            modes.Add((int)Mode.NoItalic);
+            
+        if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
+            modes.Add((int)Mode.Underline);
+        if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
+            modes.Add((int)Mode.NoUnderline);
+            
+        if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
+            modes.Add((int)Mode.Blink);
+        if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
+            modes.Add((int)Mode.NoBlink);
+            
+        if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
+            modes.Add((int)Mode.Inverse);
+        if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
+            modes.Add((int)Mode.NoInverse);
+            
+        if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+            modes.Add((int)Mode.StrikeThrough);
+        if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
+            modes.Add((int)Mode.NoStrikeThrough);
+
+        if (modes.Count > 0)
+            textWriter.SetMode(modes.Select(x => (Mode)x).ToArray());
+    } 
     
     public static string ToTaggedString(this ConsoleString cs, bool useReset = false)
     {
         if (!cs.MetaData.Any())
             return string.Empty;
 
-        void WriteFormatDiff(StringBuilder sb, ConsoleFormat fromFormat, ConsoleFormat toFormat)
+        var currentFormat = ConsoleFormat.Default;
+        var sb = new StringBuilder();
+        foreach (var entry in cs.MetaData)
+        {
+            AppendTaggedStringFormatDiff(sb, currentFormat, entry.Data, useReset);
+            sb.Append(entry.Text);
+            currentFormat = entry.Data;
+        }
+        AppendTaggedStringFormatDiff(sb, currentFormat, ConsoleFormat.Default, useReset);
+        return sb.ToString();
+    }
+    
+    private static void AppendTaggedStringFormatDiff(StringBuilder sb, ConsoleFormat fromFormat, ConsoleFormat toFormat, bool useReset)
         {
             if (useReset && toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
             {
@@ -228,18 +245,6 @@ public static class MetaStringConsoleFormat
             if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
                 sb.Append("[/T]");
         }
-        
-        var currentFormat = ConsoleFormat.Default;
-        var sb = new StringBuilder();
-        foreach (var entry in cs.MetaData)
-        {
-            WriteFormatDiff(sb, currentFormat, entry.Data);
-            sb.Append(entry.Text);
-            currentFormat = entry.Data;
-        }
-        WriteFormatDiff(sb, currentFormat, ConsoleFormat.Default);
-        return sb.ToString();
-    }
     
     public static ConsoleString Optimize(this ConsoleString cs) => new(cs.MetaData.WithoutPosition().Optimize());
 
