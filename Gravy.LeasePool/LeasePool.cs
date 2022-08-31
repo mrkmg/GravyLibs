@@ -236,24 +236,25 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             await _leasesSemaphore.WaitAsync(millisecondsTimeout, token).ConfigureAwait(false);
     }
 
-    private void ReleaseLease()
-    {
-        _leasesSemaphore?.Release();
-    }
-    
-    private readonly struct ActiveLease : ILease<T>
+    private void ReleaseLease() => _leasesSemaphore?.Release();
+
+    private struct ActiveLease : ILease<T>
     {
         public T Value { get; }
         internal readonly LeasePool<T> Pool;
+        private int _disposed;
         
         public ActiveLease(LeasePool<T> pool, T value)
         {
             Pool = pool;
             Value = value;
+            _disposed = 0;
         }
         
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref _disposed, 1) == 1)
+                throw new ObjectDisposedException("Lease already disposed.");
             Pool.Return(this);
         }
     }

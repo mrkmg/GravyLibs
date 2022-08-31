@@ -7,7 +7,7 @@ namespace Gravy.LeasePool;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 [PublicAPI]
-public interface ILease<out T> : IDisposable
+public interface ILease<T> : IDisposable
 {
     /// <summary>
     /// The leased item.
