@@ -8,7 +8,7 @@
 
     <PropertyGroup>
         <PackageId>Gravy.UsingLock</PackageId>
-        <Version>0.1.1</Version>
+        <Version>0.1.2</Version>
         <Title>Gravy.UsingLock</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>A simple class to assist in being async/thread safe.</Description>

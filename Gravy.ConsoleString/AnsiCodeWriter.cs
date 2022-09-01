@@ -157,11 +157,11 @@ public static class WindowsConsole
             NativeMethods.GetConsoleMode(stdHandle, out mode);
             return (mode & 4) == 4;
         }
-        catch (DllNotFoundException ex)
+        catch (DllNotFoundException)
         {
             return false;
         }
-        catch (EntryPointNotFoundException ex)
+        catch (EntryPointNotFoundException)
         {
             return false;
         }
@@ -171,16 +171,13 @@ public static class WindowsConsole
     {
         private const string Kernel32 = "kernel32.dll";
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern int GetVersion();
-
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32, SetLastError = true)]
         internal static extern bool SetConsoleMode(IntPtr hConsoleHandle, int mode);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32, SetLastError = true)]
         internal static extern bool GetConsoleMode(IntPtr handle, out int mode);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(Kernel32, SetLastError = true)]
         internal static extern IntPtr GetStdHandle(int handle);
     }
 }
