@@ -9,8 +9,8 @@ internal interface Token
     public int Column { get; }
     
     public static TextToken Text(string text, int line, int column) => new(text, line, column);
-    public static ForegroundStartToken ForegroundStart(Color color, int line, int column) => new(color, line, column);
-    public static BackgroundStartToken BackgroundStart(Color color, int line, int column) => new(color, line, column);
+    public static ForegroundStartToken ForegroundStart(AnsiColor color, int line, int column) => new(color, line, column);
+    public static BackgroundStartToken BackgroundStart(AnsiColor color, int line, int column) => new(color, line, column);
     public static ForegroundStopToken ForegroundStop(int line, int column) => new(line, column);
     public static BackgroundStopToken BackgroundStop(int line, int column) => new(line, column);
     public static StyleStartToken StyleStart(FontStyle fontStyle, int line, int column) => new(fontStyle, line, column);
@@ -37,9 +37,9 @@ internal interface Token
     {
         public int Line { get; }
         public int Column { get; }
-        public Color Color { get; }
+        public AnsiColor Color { get; }
 
-        public ForegroundStartToken(Color color, int line, int column)
+        public ForegroundStartToken(AnsiColor color, int line, int column)
         {
             Color = color;
             Line = line;
@@ -51,9 +51,9 @@ internal interface Token
     {
         public int Line { get; }
         public int Column { get; }
-        public Color Color { get; }
+        public AnsiColor Color { get; }
 
-        public BackgroundStartToken(Color color, int line, int column)
+        public BackgroundStartToken(AnsiColor color, int line, int column)
         {
             Color = color;
             Line = line;

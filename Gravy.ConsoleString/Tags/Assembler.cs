@@ -24,8 +24,8 @@ internal class Assembler
             .Select(sv => sv.Key)
             .Aggregate(FontStyle.None, (current, style) => current | style);
     private FontWeight CurrentFontWeight => WeightStack.Count > 0 ? WeightStack.Peek().FontWeight : FontWeight.Normal;
-    private Color? CurrentForeground => ForegroundStack.Count > 0 ? ForegroundStack.Peek().Color : null;
-    private Color? CurrentBackground => BackgroundStack.Count > 0 ? BackgroundStack.Peek().Color : null;
+    private AnsiColor? CurrentForeground => ForegroundStack.Count > 0 ? ForegroundStack.Peek().Color : null;
+    private AnsiColor? CurrentBackground => BackgroundStack.Count > 0 ? BackgroundStack.Peek().Color : null;
     private ConsoleFormat CurrentFormat => new(CurrentForeground, CurrentBackground, CurrentFontWeight, CurrentFontStyle);
 
     private Assembler(bool strictMode)

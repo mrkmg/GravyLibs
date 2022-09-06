@@ -7,7 +7,7 @@ internal class FileInstance : IFileInstance, IDisposable
     public Guid Id { get; }
     public IDownloadDefinition Definition { get; }
     public long TotalBytes { get; }
-    public Status Status { get; private set; }
+    public DownloaderStatus Status { get; private set; }
     
     public long CompletedBytes => Progress.CompletedBytes;
     public double CurrentBytesPerSecond => Progress.CurrentBytesPerSecond;
@@ -15,6 +15,7 @@ internal class FileInstance : IFileInstance, IDisposable
     public double OverallBytesPerSecond => Progress.OverallBytesPerSecond;
     public IReadOnlyList<IChunkInstance> Chunks => ChunksInternal;
     public int ElapsedMilliseconds => Progress.ElapsedMilliseconds;
+    public Task CompletionTask => _completionSource.Task;
 
     private readonly object _lockObject = new();
     private readonly TaskCompletionSource _completionSource = new();
@@ -26,7 +27,7 @@ internal class FileInstance : IFileInstance, IDisposable
     public FileInstance(Guid id, IDownloadDefinition definition, FileWriterType writerType, long totalBytes, ChunkInstance[] chunks)
     {
         Id = id;
-        Status = Status.Waiting;
+        Status = DownloaderStatus.Waiting;
         Definition = definition;
         TotalBytes = totalBytes;
         ChunksInternal = chunks;
@@ -42,15 +43,9 @@ internal class FileInstance : IFileInstance, IDisposable
         };
     }
 
-    public async Task WaitAsync()
-        => await _completionSource.Task.ConfigureAwait(false);
-
-    public async Task WaitAsync(CancellationToken token)
-        => await _completionSource.Task.WaitAsync(token).ConfigureAwait(false);
-
     internal void SetErrored(Exception error)
     {
-        Status = Status.Errored;
+        Status = DownloaderStatus.Errored;
         if (error is OperationCanceledException)
             _completionSource.TrySetCanceled();
         else
@@ -61,9 +56,9 @@ internal class FileInstance : IFileInstance, IDisposable
     {
         lock (_lockObject)
         {
-            if (Status != Status.Waiting)
+            if (Status != DownloaderStatus.Waiting)
                 return false;
-            Status = Status.InProgress;
+            Status = DownloaderStatus.InProgress;
             Writer.StartFile();
             Progress.Started();
             return true;
@@ -74,9 +69,9 @@ internal class FileInstance : IFileInstance, IDisposable
     {
         lock (_lockObject)
         {
-            if (Status == Status.Complete || ChunksInternal.Any(x => x.Status != Status.Complete))
+            if (Status == DownloaderStatus.Complete || ChunksInternal.Any(x => x.Status != DownloaderStatus.Complete))
                 return false;
-            Status = Status.Complete;
+            Status = DownloaderStatus.Complete;
             _completionSource.SetResult();
             Progress.Finished();
             Writer.FinalizeFile();

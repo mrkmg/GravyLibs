@@ -3,11 +3,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 
 namespace Gravy.ConsoleString.Tags;
 
 internal class Tokenizer
 {
+    private static IDictionary<string, ConsoleThemeColor> _colorMap
+        = Enum.GetNames<ConsoleThemeColor>()
+            .Zip(Enum.GetValues<ConsoleThemeColor>())
+            .ToDictionary(x => x.First, x => x.Second);
+
     // Allow inconsistent naming because it has no public properties or fields.
     // ReSharper disable InconsistentNaming
     private readonly string SourceText;
@@ -230,20 +236,28 @@ internal class Tokenizer
         return SourceText[Index + 1];
     }
 
-    private Color ReadCurrentColor()
+    private AnsiColor ReadCurrentColor()
     {
         var nextIndex = NextCloseBracketIndex();
         var color = Char switch
         {
             '#' => ReadColorHexValue(SourceText[(Index+1)..nextIndex]),
             '!' => ReadColorNameValue(SourceText[(Index+1)..nextIndex]),
+            '@' => ReadColorThemeValue(SourceText[(Index+1)..nextIndex]),
             _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
         };
         MoveTo(nextIndex);
         return color;
     }
+
+    private AnsiColor ReadColorThemeValue(string themeValue)
+    {
+        if (_colorMap.TryGetValue(themeValue, out var color))
+            return color;
+        throw new UnknownThemeColorException("Unknown Color", themeValue, CurrentLine, CurrentColumn);
+    }
         
-    private Color ReadColorHexValue(string hexValue)
+    private AnsiColor ReadColorHexValue(string hexValue)
     {
         try
         {
@@ -260,7 +274,7 @@ internal class Tokenizer
         }
     }
 
-    private Color ReadColorNameValue(string colorName)
+    private AnsiColor ReadColorNameValue(string colorName)
     {
         Color color;
         if ((color = Color.FromName(colorName)).ToKnownColor() != 0)

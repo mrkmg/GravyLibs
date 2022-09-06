@@ -14,12 +14,39 @@ public class Tags
     private static readonly Color Blue = Color.Blue;
     private static readonly Color Green = Color.Green;
 
+    public class IndividualTags
+    {
+        [Test] public void ForegroundSystemColor() => "[F!Red]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Red)));
+        [Test] public void ForegroundThemeColor() => "[F@Blue]Test[/F]".WhenParsed(Is.EqualTo("Test".With(ConsoleThemeColor.Blue)));
+        [Test] public void ForegroundRgbColor() => "[F#00FF00]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Color.FromArgb(0, 255, 0))));
+        
+        [Test] public void BackgroundSystemColor() => "[G!Red]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Red)));
+        [Test] public void BackgroundThemeColor() => "[G@Blue]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, ConsoleThemeColor.Blue)));
+        [Test] public void BackgroundRgbColor() => "[G#00FF00]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Color.FromArgb(0, 255, 0))));
 
-    public class Compiler
+        [Test] public void Bold() => "[B]Test[/B]".WhenParsed(Is.EqualTo("Test".With(FontWeight.Bold)));
+        [Test] public void Light() => "[L]Test[/L]".WhenParsed(Is.EqualTo("Test".With(FontWeight.Light)));
+        
+        [Test] public void Italic() => "[I]Test[/I]".WhenParsed(Is.EqualTo("Test".With(FontStyle.Italic)));
+        [Test] public void Underline() => "[U]Test[/U]".WhenParsed(Is.EqualTo("Test".With(FontStyle.Underline)));
+        [Test] public void Strikethrough() => "[T]Test[/T]".WhenParsed(Is.EqualTo("Test".With(FontStyle.StrikeThrough)));
+        [Test] public void Blink() => "[K]Test[/K]".WhenParsed(Is.EqualTo("Test".With(FontStyle.Blink)));
+        [Test] public void Inverse() => "[V]Test[/V]".WhenParsed(Is.EqualTo("Test".With(FontStyle.Inverse)));
+        
+        [Test] public void WithAllTags() 
+            => "[F!Red][G!Blue][B][I][U][T][K][V]Test[//]"
+                .WhenParsed(Is.EqualTo("Test".With(
+                    Red, 
+                    Blue, 
+                    FontWeight.Bold, 
+                    FontStyle.Italic | FontStyle.Underline | FontStyle.StrikeThrough | FontStyle.Blink | FontStyle.Inverse)));
+    }
+
+    public class ErrorChecking
     {
 
         [Test] public void NoTags() 
-            => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".CS()));
+            => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".ParseCS()));
 
         [Test] public void ResetThrowsInStrict() 
             => "This\n is\r\n a sim[//]ple\r string".WhenParsedStrictly(
@@ -45,25 +72,9 @@ public class Tags
         [Test] public void UnknownColorNameThrows()
             => @"[F!Funky]Test[/F]".WhenParsed(Throws.TypeOf<UnknownNamedColorException>());
         
-        [Test] public void WithAllTags() 
-            => ("Text " +
-                @"[B]Bold[/B] [L]Light[/L] " +
-                @"[I]Italic[/I] [U]Underline[/U] [T]StrikeThrough[/T] [K]Blink[/K] [V]Inverse[/V] " +
-                @"[F#FF0000]Foreground[/F] [G!Green]Background[/G] [B][I][U][F!Red][G#00FF00]All[//] None")
-                .WhenParsed(Is.EqualTo(("Text " +
-                                       "Bold".CS().WithBold() + " " +
-                                       "Light".CS().WithLight() + " " +
-                                       "Italic".CS().WithItalic() + " " +
-                                       "Underline".CS().WithUnderline() + " " +
-                                       "StrikeThrough".CS().WithStrikeThrough() + " " +
-                                       "Blink".CS().WithBlink() + " " +
-                                       "Inverse".CS().WithInverse() + " " +
-                                       "Foreground".CS().WithForeground(Color.Red) + " " +
-                                       "Background".CS().WithBackground(Color.Green) + " " +
-                                       "All".CS().WithBold().WithItalic().WithUnderline()
-                                           .WithForeground(Color.Red).WithBackground(Color.FromArgb(0, 255, 0)) + " " +
-                                       "None".CS()).Optimize()));
-        
+        [Test] public void UnknownThemeColorThrows()
+            => @"[F@Funky]Test[/F]".WhenParsed(Throws.TypeOf<UnknownThemeColorException>());
+
         [Test] public void WithUnmatchedStyleStartTag()
             => @"[B]Test".WhenParsedStrictly(Throws.Exception.TypeOf<UnmatchedStartTokenException>());
         
@@ -121,16 +132,16 @@ public class Tags
     
     public class ToTags
     {
-        public ConsoleString BoldEscape = "Hello".CS().WithBold() + @"\" + "World".CS().WithItalic();
-        public ConsoleString Overlapping = "He".CS().WithBold().WithForeground(Red) +
-                    "llo".CS().WithBold() +
+        public ConsoleString BoldEscape = "Hello".ParseCS().WithBold() + @"\" + "World".ParseCS().WithItalic();
+        public ConsoleString Overlapping = "He".ParseCS().WithBold().WithForeground(Red) +
+                    "llo".ParseCS().WithBold() +
                     " " +
-                    "Wo".CS().WithItalic().WithBackground(Green) +
-                    "rld".CS().WithBackground(Green);
-        public ConsoleString ColorVariety = "Hel".CS().WithBold().WithItalic().WithForeground(Color.FromArgb(0xFF0000)) +
-                    "lo".CS().WithBold().WithItalic().WithForeground(Blue) +
+                    "Wo".ParseCS().WithItalic().WithBackground(Green) +
+                    "rld".ParseCS().WithBackground(Green);
+        public ConsoleString ColorVariety = "Hel".ParseCS().WithBold().WithItalic().WithForeground(Color.FromArgb(255, 0, 0)) +
+                    "lo".ParseCS().WithBold().WithItalic().WithForeground(Blue) +
                     " " +
-                    "World".CS().WithUnderline();
+                    "World".ParseCS().WithUnderline();
 
         [Test] public void BoldAndEscape() => BoldEscape.WhenTagged(Is.EqualTo("[B]Hello[/B]\\[I]World[/I]"));
         [Test] public void BoldAndEscapeWithReset() => BoldEscape.WhenTaggedWithReset(Is.EqualTo("[B]Hello[//]\\[I]World[//]"));

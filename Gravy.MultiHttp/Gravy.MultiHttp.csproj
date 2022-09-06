@@ -8,7 +8,7 @@
 
     <PropertyGroup>
         <PackageId>Gravy.MultiHttp</PackageId>
-        <Version>0.4.0</Version>
+        <Version>0.5.0</Version>
         <Title>Gravy.MultiHttp</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>TODO</Description>
@@ -33,7 +33,9 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
+      <PackageReference Include="JetBrains.Annotations" Version="2022.1.0">
+          <PrivateAssets>all</PrivateAssets>
+      </PackageReference>
     </ItemGroup>
 
 </Project>

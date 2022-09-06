@@ -15,9 +15,9 @@ public static class MetaStringConsoleFormat
 {
     public static ConsoleString From(this string str, ConsoleFormat format) => new (str, format);
     public static ConsoleString With(this ConsoleString cs, ConsoleFormat format) => new (cs.RawText, format);
-    public static ConsoleString WithForeground(this ConsoleString cs, Color? color) 
+    public static ConsoleString WithForeground(this ConsoleString cs, AnsiColor? color) 
         => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithForeground(color))));
-    public static ConsoleString WithBackground(this ConsoleString cs, Color? color) 
+    public static ConsoleString WithBackground(this ConsoleString cs, AnsiColor? color) 
         => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithBackground(color))));
     public static ConsoleString WithStyle(this ConsoleString cs, FontStyle style) 
         => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithStyle(style))));
@@ -52,9 +52,11 @@ public static class MetaStringConsoleFormat
     /// <para>Tags:</para>
     /// <b>[F#XXXXXX]</b> Set foreground color to Hex color.<br />
     /// <b>[F!Name]</b>   Set foreground color to a known color name. See <see cref="KnownColor"/><br />
+    /// <b>[F@Name]</b>   Set foreground color to a ANSI color name. See <see cref="ConsoleThemeColor"/><br />
     /// <b>[/F]</b>       Stop the current foreground color.<br />
     /// <b>[G#XXXXXX]</b> Set background color to Hex color.<br />
     /// <b>[G!Name]</b>   Set background color to known color name. See <see cref="KnownColor"/><br />
+    /// <b>[G@Name]</b>   Set background color to a ANSI color name. See <see cref="ConsoleThemeColor"/><br />
     /// <b>[/G]</b>       Stop the current background color.<br />
     /// <b>[B]</b>        Enable Bold.<br />
     /// <b>[/B]</b>       Disable Bold.<br />
@@ -109,18 +111,18 @@ public static class MetaStringConsoleFormat
         
         var modes = new List<Mode>();
         
-        if (!toFormat.BackgroundColor.IsEquivalent(fromFormat.BackgroundColor))
+        if (toFormat.BackgroundColor != fromFormat.BackgroundColor)
         {
             if (toFormat.BackgroundColor.HasValue)
-                textWriter.SetBackgroundColor(toFormat.BackgroundColor.Value.ToAnsi());
+                textWriter.SetBackgroundColor(toFormat.BackgroundColor.Value);
             else
                 textWriter.SetMode(Mode.BackgroundDefault);
         }
         
-        if (!toFormat.ForegroundColor.IsEquivalent(fromFormat.ForegroundColor))
+        if (toFormat.ForegroundColor != fromFormat.ForegroundColor)
         {
             if (toFormat.ForegroundColor.HasValue)
-                textWriter.SetForegroundColor(toFormat.ForegroundColor.Value.ToAnsi());
+                textWriter.SetForegroundColor(toFormat.ForegroundColor.Value);
             else
                 textWriter.SetMode(Mode.ForegroundDefault);
         }

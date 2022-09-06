@@ -1,8 +1,11 @@
-﻿namespace Gravy.MultiHttp.Interfaces;
+﻿using JetBrains.Annotations;
 
-public interface IChunkInstance : ITrackable
+namespace Gravy.MultiHttp.Interfaces;
+
+[PublicAPI]
+public interface IChunkInstance : ITrackable, ITaskable
 {
-    Status Status { get; }
+    DownloaderStatus Status { get; }
     long StartByte { get; }
     long EndByte { get; }
 }

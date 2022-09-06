@@ -1,7 +1,12 @@
-﻿namespace Gravy.MultiHttp.Interfaces;
+﻿using JetBrains.Annotations;
 
-public interface IWaitable
+namespace Gravy.MultiHttp.Interfaces;
+
+[PublicAPI]
+public interface ITaskable
 {
-    Task WaitAsync();
-    Task WaitAsync(CancellationToken token);
+    /// <summary>
+    /// A task which will complete when the taskable is completed. Will error if the taskable errors.
+    /// </summary>
+    Task CompletionTask { get; }
 }

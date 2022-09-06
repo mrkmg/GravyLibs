@@ -1,9 +1,12 @@
-﻿namespace Gravy.MultiHttp.Interfaces;
+﻿using JetBrains.Annotations;
 
-public interface IFileInstance : ITrackable, IWaitable
+namespace Gravy.MultiHttp.Interfaces;
+
+[PublicAPI]
+public interface IFileInstance : ITrackable, ITaskable
 {
     Guid Id { get; }
-    Status Status { get; }
+    DownloaderStatus Status { get; }
     IDownloadDefinition Definition { get; }
     IReadOnlyList<IChunkInstance> Chunks { get; }
 }

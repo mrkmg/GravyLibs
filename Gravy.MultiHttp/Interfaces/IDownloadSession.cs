@@ -1,6 +1,9 @@
-﻿namespace Gravy.MultiHttp.Interfaces;
+﻿using JetBrains.Annotations;
 
-public interface IDownloadSession : IDisposable, IWaitable
+namespace Gravy.MultiHttp.Interfaces;
+
+[PublicAPI]
+public interface IDownloadSession : IDisposable, ITaskable
 {
     event EventHandler? OnStarted;
     event EventHandler<IOverallProgress>? OnProgress;

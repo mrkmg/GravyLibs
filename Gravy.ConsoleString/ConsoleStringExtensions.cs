@@ -11,33 +11,32 @@ public static class ConsoleStringExtensions
         => new(str);
     
     // ReSharper disable once InconsistentNaming
-    public static ConsoleString CS(this string str)
+    public static ConsoleString ParseCS(this string str)
         => str.FromTags();
-
-    // ReSharper disable once InconsistentNaming
-    public static ConsoleString FG(this ConsoleString cStr, Color color)
-        => cStr.WithForeground(color);
-    
-    // ReSharper disable once InconsistentNaming
-    public static ConsoleString BG(this ConsoleString cStr, Color color)
-        => cStr.WithBackground(color);
     
     public static ConsoleString With(this string str, ConsoleFormat format)
         => new(str, format);
-
-    internal static AnsiColor ToAnsi(this Color color)
-        => new(color.R, color.G, color.B);
+    
+    public static ConsoleString With(this string str, FontWeight weight)
+        => str.With(null, null, weight);
+    
+    public static ConsoleString With(this string str, FontStyle style)
+        => str.With(null, null, default, style);
+    
+    public static ConsoleString With(this string str, AnsiColor? foreground = null, AnsiColor? background = null, FontWeight weight = FontWeight.Normal, FontStyle styles = FontStyle.None)
+        => new(str, new(foreground, background, weight, styles));
     
     internal static string ToHex(this Color color)
-        => color.A == 0 ? color.ToArgb().ToString("X6") : color.ToArgb().ToString("X8");
+        => color.A == 0xFF ? (color.ToArgb() & 0x00FFFFFF).ToString("X6") : color.ToArgb().ToString("X8");
     
-    internal static bool IsEquivalent(this Color? color1, Color? color2)
-        => (color1 is null && color2 is null) || (color1 is not null && color2 is not null && color1.Value.ToArgb() == color2.Value.ToArgb()); 
+    internal static bool IsEquivalent(this Color color1, Color color2)
+        => color1.ToArgb() == color2.ToArgb(); 
 
-    public static string ToCsColor(this Color color)
+    public static string ToCsColor(this AnsiColor color)
     {
-        if (color.IsNamedColor) return "!" + color.Name;
-        return "#" + color.ToHex();
+        if (color.IsThemeColor) return "@" + color.ThemeColor;
+        if (color.SystemColor.IsNamedColor) return "!" + color.SystemColor.Name;
+        return "#" + color.SystemColor.ToHex();
     }
 
 

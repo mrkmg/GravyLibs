@@ -45,6 +45,7 @@ public sealed class DownloadSession : IDownloadSession
     public bool IsRunning { get; private set; }
     public long MaxChunkSize { get; }
     public int MaxConcurrency { get; }
+    public Task CompletionTask => _downloadAggregator.Task;
 
     public IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken? token = null)
     {
@@ -128,7 +129,7 @@ public sealed class DownloadSession : IDownloadSession
         Start();
         try
         {
-            await WaitAsync(stopToken).ConfigureAwait(false);
+            await CompletionTask.WaitAsync(stopToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -136,12 +137,6 @@ public sealed class DownloadSession : IDownloadSession
             throw;
         }
     }
-
-    public Task WaitAsync()
-        => WaitAsync(CancellationToken.None);
-
-    public async Task WaitAsync(CancellationToken token) 
-        => await _downloadAggregator.Task.WaitAsync(token).ConfigureAwait(false);
 
     public void Dispose()
     {
@@ -160,12 +155,12 @@ public sealed class DownloadSession : IDownloadSession
 
         file.Progress.ThreadStarted();
         file.Writer.StartChunk(chunk.ChunkIndex);
-        chunk.Progress.Started();
+        chunk.Started();
     }
 
     private void ChunkProgressed(FileInstance file, ChunkInstance chunk, long bytesMoved)
     {
-        chunk.Progress.ApplyProgress(bytesMoved);
+        chunk.ApplyProgress(bytesMoved);
         if (file.Progress.ApplyProgress(bytesMoved)) OnFileProgress?.Invoke(this, file.Progress);
         if (_overallProgress.ApplyProgress(bytesMoved)) OnProgress?.Invoke(this, _overallProgress);
     }
@@ -173,8 +168,7 @@ public sealed class DownloadSession : IDownloadSession
     private void ChunkCompleted(FileInstance file, ChunkInstance chunk)
     {
         file.Writer.FinalizeChunk(chunk.ChunkIndex);
-        chunk.Status = Status.Complete;
-        chunk.Progress.Finished();
+        chunk.Finished();
         if (!file.CheckAndSetCompleted())
             return;
         
@@ -191,7 +185,7 @@ public sealed class DownloadSession : IDownloadSession
 
     private void ChunkErrored(FileInstance file, ChunkInstance chunk, Exception error)
     {
-        chunk.Status = Status.Errored;
+        chunk.Errored(error);
         file.SetErrored(error);
         OnError?.Invoke(this, error);
         OnEnded?.Invoke(this, false);
@@ -218,7 +212,6 @@ public sealed class DownloadSession : IDownloadSession
             }
             catch (Exception e)
             {
-                chunk.Status = Status.Errored;
                 ChunkErrored(file, chunk, e);
                 throw;
             }

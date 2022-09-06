@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -47,11 +48,19 @@ public static class AnsiCodeWriter
     public static void SetMode(this TextWriter w, params Mode[] modes) => SetMode(w, (IEnumerable<Mode>)modes);
     public static void SetMode(this TextWriter w, IEnumerable<Mode> modes) => w.Write($"{Codes.Escape}[{string.Join(";", modes.AsEnumerable().Select(m => (int)m))}m");
 
-    private static void SetColorColor(this TextWriter w, Mode mode, AnsiColor color) => w.Write($"{Codes.Escape}[{(byte)mode};2;{color.R};{color.G};{color.B}m");
+    private static void SetColorColor(this TextWriter w, Mode mode, Color color) => w.Write($"{Codes.Escape}[{(byte)mode};2;{color.R};{color.G};{color.B}m");
 
-    public static void SetBackgroundColor(this TextWriter w, AnsiColor color) => w.SetColorColor(Mode.SetBackgroundColor, color);
+    public static void SetBackgroundColor(this TextWriter w, AnsiColor color)
+    {
+        if (color.IsThemeColor) w.SetMode(color.ThemeColor.BackgroundMode());
+        else w.SetColorColor(Mode.SetBackgroundColor, color.SystemColor);
+    }
 
-    public static void SetForegroundColor(this TextWriter w, AnsiColor color) => w.SetColorColor(Mode.SetForegroundColor, color);
+    public static void SetForegroundColor(this TextWriter w, AnsiColor color)
+    {
+        if (color.IsThemeColor) w.SetMode(color.ThemeColor.ForegroundMode());
+        else w.SetColorColor(Mode.SetForegroundColor, color.SystemColor);
+    }
 
     private static void AnsiEscapePrefix(this TextWriter w, int count, char code) => w.Write($"{Codes.Escape}[{count}{code}");
 
@@ -77,6 +86,33 @@ public static class AnsiCodeWriter
 
     public static void ScrollRegionDown(this TextWriter w, int count = 1) => w.AnsiEscapePrefix(count, 'T');
 
+    private static Mode ForegroundMode(this ConsoleThemeColor color)
+        => color switch
+        {
+            ConsoleThemeColor.Black => Mode.ForegroundBlack,
+            ConsoleThemeColor.Red => Mode.ForegroundRed,
+            ConsoleThemeColor.Green => Mode.ForegroundGreen,
+            ConsoleThemeColor.Yellow => Mode.ForegroundYellow,
+            ConsoleThemeColor.Blue => Mode.ForegroundBlue,
+            ConsoleThemeColor.Magenta => Mode.ForegroundMagenta,
+            ConsoleThemeColor.Cyan => Mode.ForegroundCyan,
+            ConsoleThemeColor.White => Mode.ForegroundWhite,
+            _ => throw new ArgumentOutOfRangeException(nameof(color), color, null)
+        };
+    
+    private static Mode BackgroundMode(this ConsoleThemeColor color)
+        => color switch
+        {
+            ConsoleThemeColor.Black => Mode.BackgroundBlack,
+            ConsoleThemeColor.Red => Mode.BackgroundRed,
+            ConsoleThemeColor.Green => Mode.BackgroundGreen,
+            ConsoleThemeColor.Yellow => Mode.BackgroundYellow,
+            ConsoleThemeColor.Blue => Mode.BackgroundBlue,
+            ConsoleThemeColor.Magenta => Mode.BackgroundMagenta,
+            ConsoleThemeColor.Cyan => Mode.BackgroundCyan,
+            ConsoleThemeColor.White => Mode.BackgroundWhite,
+            _ => throw new ArgumentOutOfRangeException(nameof(color), color, null)
+        };
 
     private static class Codes
     {
@@ -123,24 +159,52 @@ public enum Mode
     BackgroundDefault = 49, // 0x00000031
 }
 
-public struct AnsiColor
+public enum ConsoleThemeColor
 {
-    public readonly byte R;
-    public readonly byte G;
-    public readonly byte B;
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+}
 
-    public AnsiColor(byte r, byte g, byte b)
+public readonly struct AnsiColor
+{
+    public readonly bool IsThemeColor;
+    public readonly ConsoleThemeColor ThemeColor;
+    public readonly Color SystemColor;
+
+    public AnsiColor(ConsoleThemeColor color)
     {
-        R = r;
-        G = g;
-        B = b;
+        SystemColor = default;
+        IsThemeColor = true;
+        ThemeColor = color;
     }
 
-    public bool Equals(AnsiColor other) => R == other.R && G == other.G && B == other.B;
+    public AnsiColor(Color color)
+    {
+        if (color.A != 0xFF)
+            throw new ArgumentException("Transparency is not supported", nameof(color));
+        SystemColor = color;
+        IsThemeColor = false;
+        ThemeColor = default;
+    }
+
+    public AnsiColor(byte r, byte g, byte b) : this(Color.FromArgb(0xFF, r, g, b)) { }
+
+    public bool Equals(AnsiColor other) 
+        => (IsThemeColor && other.IsThemeColor && ThemeColor == other.ThemeColor) || 
+           (!IsThemeColor && !other.IsThemeColor && SystemColor.IsEquivalent(other.SystemColor));
     public override bool Equals(object? obj) => obj is AnsiColor other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(R, G, B);
+    public override int GetHashCode() => HashCode.Combine(IsThemeColor, ThemeColor, SystemColor);
     public static bool operator ==(AnsiColor left, AnsiColor right) => left.Equals(right);
     public static bool operator !=(AnsiColor left, AnsiColor right) => !left.Equals(right);
+    
+    public static implicit operator AnsiColor(ConsoleThemeColor color) => new(color);
+    public static implicit operator AnsiColor(Color color) => new(color);
 }
 
 public static class WindowsConsole

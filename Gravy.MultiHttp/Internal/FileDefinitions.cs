@@ -12,7 +12,7 @@ internal class FileDefinitions : IDisposable
     public bool AllFilesCompleted()
     {
         lock (_lock)
-            return FileInstanceList.All(f => f.Status == Status.Complete);
+            return FileInstanceList.All(f => f.Status == DownloaderStatus.Complete);
     }
 
     public void AddInstance(FileInstance instance)

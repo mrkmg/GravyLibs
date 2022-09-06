@@ -2,14 +2,16 @@
 
 internal struct ProgressTracker
 {
+    private static readonly int AverageIntervalMs = 5000;
+    private static readonly int MinimumReportingIntervalMs = 500;
+    
     public long CompletedBytes => _completedBytes;
-    public int ElapsedMilliseconds => _elapsedMilliseconds;
+    public int ElapsedMilliseconds { get; private set; }
     public double CurrentSpeed { get; private set; }
     public double AverageSpeed { get; private set; }
     public double OverallSpeed { get; private set; }
 
     private int _startTick;
-    private int _elapsedMilliseconds;
     private int _currentTicks;
     private long _currentBytes;
     private long _completedBytes;
@@ -20,7 +22,7 @@ internal struct ProgressTracker
         _currentTicks = 0;
         _currentBytes = 0;
         _completedBytes = 0;
-        _elapsedMilliseconds = 0;
+        ElapsedMilliseconds = 0;
         AverageSpeed = 0;
         CurrentSpeed = 0;
         OverallSpeed = 0;
@@ -35,22 +37,27 @@ internal struct ProgressTracker
     
     public bool ApplyProgress(long bytesWritten)
     {
-        _elapsedMilliseconds = Environment.TickCount - _startTick + 1;
+        ElapsedMilliseconds = Environment.TickCount - _startTick + 1;
         
-        OverallSpeed = (double)Interlocked.Add(ref _completedBytes, bytesWritten) / _elapsedMilliseconds;
+        OverallSpeed = (double)Interlocked.Add(ref _completedBytes, bytesWritten) / ElapsedMilliseconds;
         
         Interlocked.Add(ref _currentBytes, bytesWritten);
         double timeInMs = Environment.TickCount - _currentTicks + 1;
-        if (timeInMs < 1000) return false;
+        if (timeInMs < MinimumReportingIntervalMs) return false;
         Interlocked.Exchange(ref _currentTicks, Environment.TickCount);
-        CurrentSpeed = Interlocked.Exchange(ref _currentBytes, 0) * 1000 / timeInMs; 
-        AverageSpeed = AverageSpeed == 0 ? CurrentSpeed : AverageSpeed * 0.95 + CurrentSpeed * 0.05;
+        CurrentSpeed = Interlocked.Exchange(ref _currentBytes, 0) * 1000 / timeInMs;
+        if (AverageSpeed == 0) AverageSpeed = CurrentSpeed;
+        else
+        {
+            var ratio = Math.Min(1.0, timeInMs/AverageIntervalMs);
+            AverageSpeed = (AverageSpeed * (1 - ratio) + CurrentSpeed * ratio);
+        }
         return true;
     }
     
     public void Finished()
     {
-        _elapsedMilliseconds = Environment.TickCount - _startTick + 1;
-        OverallSpeed = (double)_completedBytes / _elapsedMilliseconds;
+        ElapsedMilliseconds = Environment.TickCount - _startTick + 1;
+        OverallSpeed = (double)_completedBytes / ElapsedMilliseconds;
     }
 }

@@ -7,8 +7,8 @@ using ConsoleString = MetaString<ConsoleFormat>;
 
 public class AlteringFormat
 {
-    private static readonly Color Red = Color.Red;
-    private static readonly Color Blue = Color.Blue;
+    private static readonly AnsiColor Red = Color.Red;
+    private static readonly AnsiColor Blue = Color.Blue;
 
     [Test]
     public void ChangeForeground()

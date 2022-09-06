@@ -1,5 +1,8 @@
-﻿namespace Gravy.MultiHttp.Interfaces;
+﻿using JetBrains.Annotations;
 
+namespace Gravy.MultiHttp.Interfaces;
+
+[PublicAPI]
 public interface IFileProgress : ITrackable
 {
     IFileInstance Instance { get; }

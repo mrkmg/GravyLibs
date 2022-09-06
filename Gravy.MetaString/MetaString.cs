@@ -46,8 +46,7 @@ public partial class MetaString<T>
         return new (entry.Text[charInx], entry.Data);
     }
 
-    public override string ToString()
-        => string.Join(null, MetaEntries.Select(e => $"[{e.Text}:{e.Data?.ToString()}]"));
+    public override string ToString() => DebuggerDisplay;
     
     private void CheckPositions()
     {

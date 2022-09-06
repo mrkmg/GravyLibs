@@ -34,38 +34,38 @@ internal struct OverallProgress : IOverallProgress
         _progressTracker = new();
     }
 
-    public void Started()
+    internal void Started()
         => _progressTracker.Started();
 
-    public bool ApplyProgress(long bytesWritten)
+    internal bool ApplyProgress(long bytesWritten)
         => _progressTracker.ApplyProgress(bytesWritten);
 
-    public void Finished()
+    internal void Finished()
         => _progressTracker.Finished();
 
-    public void FileAdded(long fileTotalBytes)
+    internal void FileAdded(long fileTotalBytes)
     {
         Interlocked.Increment(ref _totalFilesInternal);
         Interlocked.Add(ref _totalBytesInternal, fileTotalBytes);
     }
 
-    public void FileCompleted(Guid fileId)
+    internal void FileCompleted(Guid fileId)
     {
         Interlocked.Increment(ref _completedFilesInternal);
         _activeFilesInternal.TryRemove(fileId, out _);
     }
 
-    public void FileStarted(FileInstance file)
+    internal void FileStarted(FileInstance file)
     {
         _activeFilesInternal.TryAdd(file.Id, file);
     }
     
-    public void ThreadStarted()
+    internal void ThreadStarted()
     {
         Interlocked.Increment(ref _activeThreadsInternal);
     }
     
-    public void ThreadFinished()
+    internal void ThreadFinished()
     {
         Interlocked.Decrement(ref _activeThreadsInternal);
     }

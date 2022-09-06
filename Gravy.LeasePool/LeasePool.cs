@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Gravy.UsingLock;
 using JetBrains.Annotations;
 using Timer = System.Timers.Timer;
@@ -33,7 +34,6 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <param name="maxLeases">The maximum number of total instance of T that can be leased or idle in the pool.</param>
     /// <param name="idleTimeout">
     ///     <para>How long an instance of T can be idle in the pool before it is automatically disposed.</para>
-    ///     <para>If set to zero, objects are never kept in a pool, and are disposed immediately when returned to the pool.</para>
     /// </param>
     /// <param name="initializer">
     ///     <para>A factory method that creates an instance of T.</para>
@@ -56,6 +56,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
                      Func<T, bool>? validator = null, 
                      Action<T>? onLease = null, Action<T>? onReturn = null)
     {
+        if (maxLeases is < -1 or 0)
+            throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(maxLeases));
+        
+        if (idleTimeout is < -1 or 0)
+            throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(idleTimeout));
+     
         MaxLeases = maxLeases;
         IdleTimeout = idleTimeout;
         InitializerFunc = initializer;
@@ -64,20 +70,13 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         OnLeaseAction = onLease;
         OnReturnAction = onReturn;
         
-        if (maxLeases is < -1 or 0)
-            throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(maxLeases));
-        
-        if (idleTimeout is < -1 or 0)
-            throw new ArgumentException("Must be greater than 0 or equal to -1", nameof(idleTimeout));
-        
         _objects = new(new());
-        
-        if (IdleTimeout > 0)
+
+        if (idleTimeout > 0)
         {
             _timer = new(idleTimeout);
-            _timer.Elapsed += (_, _) => Cleanup();
+            _timer.Elapsed += (_, _) => Cleanup();   
         }
-        
         if (maxLeases > 0)
             _leasesSemaphore = new(maxLeases, maxLeases);
     }
@@ -201,8 +200,6 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         if (!ReferenceEquals(this, obj.Pool))
             throw new InvalidOperationException("Lease is not from this pool");
-        
-        Debug.Assert(IdleTimeout > 0);
 
         OnReturn(obj.Value);
         ReleaseLease();
@@ -212,7 +209,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
 
     private void TriggerTimer()
     {
-        if (_timer is not null && !_timer.Enabled)
+        if (_timer is { Enabled: false })
             _timer.Start();
     }
 
@@ -224,6 +221,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             {
                 if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
                     return;
+                Finalize(item.Object);
                 objects.RemoveOldest();
             }            
         });
