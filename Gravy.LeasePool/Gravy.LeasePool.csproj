@@ -24,10 +24,6 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
-  
-  <Target Name="CopyNuget" AfterTargets="Pack">
-    <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
-  </Target>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugSymbols>true</DebugSymbols>

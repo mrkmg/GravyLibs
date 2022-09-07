@@ -97,6 +97,14 @@ public static class AnsiCodeWriter
             ConsoleThemeColor.Magenta => Mode.ForegroundMagenta,
             ConsoleThemeColor.Cyan => Mode.ForegroundCyan,
             ConsoleThemeColor.White => Mode.ForegroundWhite,
+            ConsoleThemeColor.BrightBlack => Mode.ForegroundBrightBlack,
+            ConsoleThemeColor.BrightRed => Mode.ForegroundBrightRed,
+            ConsoleThemeColor.BrightGreen => Mode.ForegroundBrightGreen,
+            ConsoleThemeColor.BrightYellow => Mode.ForegroundBrightYellow,
+            ConsoleThemeColor.BrightBlue => Mode.ForegroundBrightBlue,
+            ConsoleThemeColor.BrightMagenta => Mode.ForegroundBrightMagenta,
+            ConsoleThemeColor.BrightCyan => Mode.ForegroundBrightCyan,
+            ConsoleThemeColor.BrightWhite => Mode.ForegroundBrightWhite,
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, null)
         };
     
@@ -111,6 +119,15 @@ public static class AnsiCodeWriter
             ConsoleThemeColor.Magenta => Mode.BackgroundMagenta,
             ConsoleThemeColor.Cyan => Mode.BackgroundCyan,
             ConsoleThemeColor.White => Mode.BackgroundWhite,
+            
+            ConsoleThemeColor.BrightBlack => Mode.BackgroundBrightBlack,
+            ConsoleThemeColor.BrightRed => Mode.BackgroundBrightRed,
+            ConsoleThemeColor.BrightGreen => Mode.BackgroundBrightGreen,
+            ConsoleThemeColor.BrightYellow => Mode.BackgroundBrightYellow,
+            ConsoleThemeColor.BrightBlue => Mode.BackgroundBrightBlue,
+            ConsoleThemeColor.BrightMagenta => Mode.BackgroundBrightMagenta,
+            ConsoleThemeColor.BrightCyan => Mode.BackgroundBrightCyan,
+            ConsoleThemeColor.BrightWhite => Mode.BackgroundBrightWhite,
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, null)
         };
 
@@ -131,8 +148,8 @@ public enum Mode
     Blink = 5,
     Inverse = 7,
     StrikeThrough = 9,
-    Normal = 22, // 0x00000016
-    NoItalic = 23, // 0x00000017
+    Normal = 0x16, // 0x00000016
+    NoItalic = 0x17, // 0x00000017
     NoUnderline = 24, // 0x00000018
     NoBlink = 25, // 0x00000019
     NoInverse = 27, // 0x0000001B
@@ -157,6 +174,22 @@ public enum Mode
     BackgroundWhite = 47, // 0x0000002F
     SetBackgroundColor = 48, // 0x00000030
     BackgroundDefault = 49, // 0x00000031
+    ForegroundBrightBlack = 90, // 0x0000005A
+    ForegroundBrightRed = 91, // 0x0000005B
+    ForegroundBrightGreen = 92, // 0x0000005C
+    ForegroundBrightYellow = 93, // 0x0000005D
+    ForegroundBrightBlue = 94, // 0x0000005E
+    ForegroundBrightMagenta = 95, // 0x0000005F
+    ForegroundBrightCyan = 96, // 0x00000060
+    ForegroundBrightWhite = 97, // 0x00000061
+    BackgroundBrightBlack = 100, // 0x00000064
+    BackgroundBrightRed = 101, // 0x00000065
+    BackgroundBrightGreen = 102, // 0x00000066
+    BackgroundBrightYellow = 103, // 0x00000067
+    BackgroundBrightBlue = 104, // 0x00000068
+    BackgroundBrightMagenta = 105, // 0x00000069
+    BackgroundBrightCyan = 106, // 0x0000006A
+    BackgroundBrightWhite = 107, // 0x0000006B
 }
 
 public enum ConsoleThemeColor
@@ -169,6 +202,14 @@ public enum ConsoleThemeColor
     Magenta,
     Cyan,
     White,
+    BrightBlack,
+    BrightRed,
+    BrightGreen,
+    BrightYellow,
+    BrightBlue,
+    BrightMagenta,
+    BrightCyan,
+    BrightWhite
 }
 
 public readonly struct AnsiColor
