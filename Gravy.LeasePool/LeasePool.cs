@@ -220,7 +220,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
                 if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
                     return;
                 Finalize(item.Object);
-                objects.RemoveOldest();
+                objects.Remove(item);
             }            
         });
         
