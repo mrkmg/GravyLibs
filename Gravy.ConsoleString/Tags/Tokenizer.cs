@@ -4,14 +4,20 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using Gravy.Ansi;
 
 namespace Gravy.ConsoleString.Tags;
 
 internal class Tokenizer
 {
-    private static IDictionary<string, ConsoleThemeColor> _colorMap
-        = Enum.GetNames<ConsoleThemeColor>()
-            .Zip(Enum.GetValues<ConsoleThemeColor>())
+    private static IDictionary<string, Ansi16Color> _themeColorMap
+        = Enum.GetNames<Ansi16Color>()
+            .Zip(Enum.GetValues<Ansi16Color>())
+            .ToDictionary(x => x.First, x => x.Second);
+    
+    private static IDictionary<string, Ansi256Color> _ansi256ColorMap
+        = Enum.GetNames<Ansi256Color>()
+            .Zip(Enum.GetValues<Ansi256Color>())
             .ToDictionary(x => x.First, x => x.Second);
 
     // Allow inconsistent naming because it has no public properties or fields.
@@ -244,7 +250,8 @@ internal class Tokenizer
             '#' => ReadColorHexValue(SourceText[(Index+1)..nextIndex]),
             '!' => ReadColorNameValue(SourceText[(Index+1)..nextIndex]),
             '@' => ReadColorThemeValue(SourceText[(Index+1)..nextIndex]),
-            _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn)
+            '$' => ReadColorAnsi256Value(SourceText[(Index+1)..nextIndex]),
+            _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn),
         };
         MoveTo(nextIndex);
         return color;
@@ -252,9 +259,16 @@ internal class Tokenizer
 
     private AnsiColor ReadColorThemeValue(string themeValue)
     {
-        if (_colorMap.TryGetValue(themeValue, out var color))
+        if (_themeColorMap.TryGetValue(themeValue, out var color))
             return color;
         throw new UnknownThemeColorException("Unknown Color", themeValue, CurrentLine, CurrentColumn);
+    }
+
+    private AnsiColor ReadColorAnsi256Value(string ansi256Color)
+    {
+        if (_ansi256ColorMap.TryGetValue(ansi256Color, out var color))
+            return color;
+        throw new UnknownThemeColorException("Unknown Color", ansi256Color, CurrentLine, CurrentColumn);
     }
         
     private AnsiColor ReadColorHexValue(string hexValue)
@@ -265,7 +279,7 @@ internal class Tokenizer
             {
                 6 => Color.FromArgb(int.Parse("FF" + hexValue, NumberStyles.HexNumber)),
                 8 => Color.FromArgb(int.Parse(hexValue, NumberStyles.HexNumber)),
-                _ => throw new("Hex color value must be 6 or 8 characters long")
+                _ => throw new("Hex color value must be 6 or 8 characters long"),
             };
         }
         catch (Exception e)
@@ -295,7 +309,7 @@ internal class Tokenizer
             'K' => TokenizerState.StartBlink,
             'V' => TokenizerState.StartInverse,
             'T' => TokenizerState.StartStrikeThrough,
-            _ => throw new UnknownTagException(Char, TokenStartLine, TokenStartColumn)
+            _ => throw new UnknownTagException(Char, TokenStartLine, TokenStartColumn),
         };
     }
 
@@ -313,7 +327,7 @@ internal class Tokenizer
             'V' => TokenizerState.StopInverse,
             'T' => TokenizerState.StopStrikeThrough,
             '/' => TokenizerState.ResetAll,
-            _ => throw new UnknownTagException(Char, TokenStartLine, TokenStartColumn)
+            _ => throw new UnknownTagException(Char, TokenStartLine, TokenStartColumn),
         };
     }
 

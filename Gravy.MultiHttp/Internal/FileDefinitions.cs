@@ -6,7 +6,7 @@ namespace Gravy.MultiHttp.Internal;
 internal class FileDefinitions : IDisposable
 {
     private readonly object _lock = new();
-    private readonly ConcurrentQueue<(FileInstance, ChunkInstance)> _pendingChunks = new();
+    private readonly ConcurrentQueue<(FileInstance File, ChunkInstance Chunk)> _pendingChunks = new();
     internal readonly List<FileInstance> FileInstanceList = new();
 
     public bool AllFilesCompleted()
@@ -31,8 +31,8 @@ internal class FileDefinitions : IDisposable
     {
         if (_pendingChunks.TryDequeue(out var fileChunk))
         {
-            fileInstance = fileChunk.Item1;
-            chunkInstance = fileChunk.Item2;
+            fileInstance = fileChunk.File;
+            chunkInstance = fileChunk.Chunk;
             return true;
         }
         fileInstance = null;

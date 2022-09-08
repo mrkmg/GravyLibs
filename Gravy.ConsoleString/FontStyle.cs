@@ -10,12 +10,12 @@ public enum FontStyle
     Underline = 2,
     Blink = 8,
     Inverse = 16,
-    StrikeThrough = 32
+    StrikeThrough = 32,
 }
 
 public enum FontWeight
 {
     Normal,
     Bold,
-    Light
+    Light,
 }

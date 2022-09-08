@@ -27,7 +27,7 @@ public static class TrackableExtensions
             EstimationSource.Current => trackable.CurrentBytesPerSecond,
             EstimationSource.Average => trackable.AverageBytesPerSecond,
             EstimationSource.Overall => trackable.OverallBytesPerSecond,
-            _ => throw new ArgumentOutOfRangeException(nameof(estimationSource), estimationSource, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(estimationSource), estimationSource, null),
         } / trackable.RemainingBytes);
 }
 

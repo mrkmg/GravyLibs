@@ -3,8 +3,10 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Gravy.Ansi;
 using Gravy.ConsoleString.Tags;
 using Gravy.MetaString;
+using JetBrains.Annotations;
 
 
 namespace Gravy.ConsoleString;
@@ -50,13 +52,15 @@ public static class MetaStringConsoleFormat
     /// <exception cref="System.Exception">Parser Errors</exception>
     /// <remarks>
     /// <para>Tags:</para>
-    /// <b>[F#XXXXXX]</b> Set foreground color to Hex color.<br />
+    /// <b>[F#XXXXXX]</b> Set foreground color to a RGB color.<br />
     /// <b>[F!Name]</b>   Set foreground color to a known color name. See <see cref="KnownColor"/><br />
-    /// <b>[F@Name]</b>   Set foreground color to a ANSI color name. See <see cref="ConsoleThemeColor"/><br />
+    /// <b>[F@Name]</b>   Set foreground color to an ANSI16 color name. See <see cref="Ansi16Color"/><br />
+    /// <b>[F$Name]</b>   Set foreground color to an ANSI256 color name. See <see cref="Ansi256Color"/><br />
     /// <b>[/F]</b>       Stop the current foreground color.<br />
-    /// <b>[G#XXXXXX]</b> Set background color to Hex color.<br />
-    /// <b>[G!Name]</b>   Set background color to known color name. See <see cref="KnownColor"/><br />
-    /// <b>[G@Name]</b>   Set background color to a ANSI color name. See <see cref="ConsoleThemeColor"/><br />
+    /// <b>[G#XXXXXX]</b> Set background color to a RGB color.<br />
+    /// <b>[G!Name]</b>   Set background color to a known color name. See <see cref="KnownColor"/><br />
+    /// <b>[G@Name]</b>   Set background color to an ANSI color name. See <see cref="Ansi16Color"/><br />
+    /// <b>[G$Name]</b>   Set background color to an ANSI256 color name. See <see cref="Ansi256Color"/><br />
     /// <b>[/G]</b>       Stop the current background color.<br />
     /// <b>[B]</b>        Enable Bold.<br />
     /// <b>[/B]</b>       Disable Bold.<br />
@@ -105,18 +109,18 @@ public static class MetaStringConsoleFormat
     {
         if (toFormat.Equals(ConsoleFormat.Default) && !fromFormat.Equals(ConsoleFormat.Default))
         {
-            textWriter.SetMode(Mode.Reset);
+            textWriter.SetMode(AnsiMode.Reset);
             return;
         }
         
-        var modes = new List<Mode>();
+        var modes = new List<AnsiMode>();
         
         if (toFormat.BackgroundColor != fromFormat.BackgroundColor)
         {
             if (toFormat.BackgroundColor.HasValue)
                 textWriter.SetBackgroundColor(toFormat.BackgroundColor.Value);
             else
-                textWriter.SetMode(Mode.BackgroundDefault);
+                textWriter.SetMode(AnsiMode.BackgroundDefault);
         }
         
         if (toFormat.ForegroundColor != fromFormat.ForegroundColor)
@@ -124,46 +128,46 @@ public static class MetaStringConsoleFormat
             if (toFormat.ForegroundColor.HasValue)
                 textWriter.SetForegroundColor(toFormat.ForegroundColor.Value);
             else
-                textWriter.SetMode(Mode.ForegroundDefault);
+                textWriter.SetMode(AnsiMode.ForegroundDefault);
         }
         
         switch (toFormat.Weight)
         {
             case FontWeight.Normal when fromFormat.Weight != FontWeight.Normal:
-                modes.Add(Mode.Normal);
+                modes.Add(AnsiMode.Normal);
                 break;
             case FontWeight.Bold when fromFormat.Weight != FontWeight.Bold:
-                modes.Add(Mode.Bold);
+                modes.Add(AnsiMode.Bold);
                 break;
             case FontWeight.Light when fromFormat.Weight != FontWeight.Light:
-                modes.Add(Mode.Faint);
+                modes.Add(AnsiMode.Faint);
                 break;
         }
 
         if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
-            modes.Add(Mode.Italic);
+            modes.Add(AnsiMode.Italic);
         if (fromFormat.Styles.HasFlag(FontStyle.Italic) && !toFormat.Styles.HasFlag(FontStyle.Italic))
-            modes.Add(Mode.NoItalic);
+            modes.Add(AnsiMode.NoItalic);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Underline) && toFormat.Styles.HasFlag(FontStyle.Underline))
-            modes.Add(Mode.Underline);
+            modes.Add(AnsiMode.Underline);
         if (fromFormat.Styles.HasFlag(FontStyle.Underline) && !toFormat.Styles.HasFlag(FontStyle.Underline))
-            modes.Add(Mode.NoUnderline);
+            modes.Add(AnsiMode.NoUnderline);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Blink) && toFormat.Styles.HasFlag(FontStyle.Blink))
-            modes.Add(Mode.Blink);
+            modes.Add(AnsiMode.Blink);
         if (fromFormat.Styles.HasFlag(FontStyle.Blink) && !toFormat.Styles.HasFlag(FontStyle.Blink))
-            modes.Add(Mode.NoBlink);
+            modes.Add(AnsiMode.NoBlink);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.Inverse) && toFormat.Styles.HasFlag(FontStyle.Inverse))
-            modes.Add(Mode.Inverse);
+            modes.Add(AnsiMode.Inverse);
         if (fromFormat.Styles.HasFlag(FontStyle.Inverse) && !toFormat.Styles.HasFlag(FontStyle.Inverse))
-            modes.Add(Mode.NoInverse);
+            modes.Add(AnsiMode.NoInverse);
             
         if (!fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-            modes.Add(Mode.StrikeThrough);
+            modes.Add(AnsiMode.StrikeThrough);
         if (fromFormat.Styles.HasFlag(FontStyle.StrikeThrough) && !toFormat.Styles.HasFlag(FontStyle.StrikeThrough))
-            modes.Add(Mode.NoStrikeThrough);
+            modes.Add(AnsiMode.NoStrikeThrough);
 
         if (modes.Count > 0)
             textWriter.SetMode(modes.ToArray());

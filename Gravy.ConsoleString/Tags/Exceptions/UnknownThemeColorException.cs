@@ -11,5 +11,5 @@ public class UnknownThemeColorException : TagsCompilerException
         ThemeValue = themeValue;
     }
 
-    public override string Message => $"Invalid Theme Color '{ThemeValue}' at {Line}:{Column} ({Detail})";
+    public override string Message => $"Invalid Ansi16 Color '{ThemeValue}' at {Line}:{Column} ({Detail})";
 }

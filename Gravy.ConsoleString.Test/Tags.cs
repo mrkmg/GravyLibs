@@ -1,5 +1,6 @@
 // ReSharper disable MemberCanBePrivate.Global
 using System.Drawing;
+using Gravy.Ansi;
 using Gravy.ConsoleString.Tags;
 using NUnit.Framework.Constraints;
 using Gravy.MetaString;
@@ -10,18 +11,16 @@ using ConsoleString = MetaString<ConsoleFormat>;
 
 public class Tags
 {
-    private static readonly Color Red = Color.Red;
-    private static readonly Color Blue = Color.Blue;
-    private static readonly Color Green = Color.Green;
-
     public class IndividualTags
     {
-        [Test] public void ForegroundSystemColor() => "[F!Red]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Red)));
-        [Test] public void ForegroundThemeColor() => "[F@Blue]Test[/F]".WhenParsed(Is.EqualTo("Test".With(ConsoleThemeColor.Blue)));
+        [Test] public void ForegroundSystemColor() => "[F!Red]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Color.Red)));
+        [Test] public void ForegroundThemeColor() => "[F@Blue]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Ansi16Color.Blue)));
+        [Test] public void ForegroundAnsi256Color() => "[F$Chartreuse4]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Ansi256Color.Chartreuse4)));
         [Test] public void ForegroundRgbColor() => "[F#00FF00]Test[/F]".WhenParsed(Is.EqualTo("Test".With(Color.FromArgb(0, 255, 0))));
         
-        [Test] public void BackgroundSystemColor() => "[G!Red]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Red)));
-        [Test] public void BackgroundThemeColor() => "[G@Blue]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, ConsoleThemeColor.Blue)));
+        [Test] public void BackgroundSystemColor() => "[G!Red]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Color.Red)));
+        [Test] public void BackgroundThemeColor() => "[G@Blue]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Ansi16Color.Blue)));
+        [Test] public void BackgroundAnsi256Color() => "[G$DarkSlateGray3]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Ansi256Color.DarkSlateGray3)));
         [Test] public void BackgroundRgbColor() => "[G#00FF00]Test[/G]".WhenParsed(Is.EqualTo("Test".With(null, Color.FromArgb(0, 255, 0))));
 
         [Test] public void Bold() => "[B]Test[/B]".WhenParsed(Is.EqualTo("Test".With(FontWeight.Bold)));
@@ -36,15 +35,14 @@ public class Tags
         [Test] public void WithAllTags() 
             => "[F!Red][G!Blue][B][I][U][T][K][V]Test[//]"
                 .WhenParsed(Is.EqualTo("Test".With(
-                    Red, 
-                    Blue, 
+                    Color.Red, 
+                    Color.Blue, 
                     FontWeight.Bold, 
                     FontStyle.Italic | FontStyle.Underline | FontStyle.StrikeThrough | FontStyle.Blink | FontStyle.Inverse)));
     }
 
     public class ErrorChecking
     {
-
         [Test] public void NoTags() 
             => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".ParseCS()));
 
@@ -133,13 +131,13 @@ public class Tags
     public class ToTags
     {
         public ConsoleString BoldEscape = "Hello".ParseCS().WithBold() + @"\" + "World".ParseCS().WithItalic();
-        public ConsoleString Overlapping = "He".ParseCS().WithBold().WithForeground(Red) +
+        public ConsoleString Overlapping = "He".ParseCS().WithBold().WithForeground(Color.Red) +
                     "llo".ParseCS().WithBold() +
                     " " +
-                    "Wo".ParseCS().WithItalic().WithBackground(Green) +
-                    "rld".ParseCS().WithBackground(Green);
+                    "Wo".ParseCS().WithItalic().WithBackground(Color.Green) +
+                    "rld".ParseCS().WithBackground(Color.Green);
         public ConsoleString ColorVariety = "Hel".ParseCS().WithBold().WithItalic().WithForeground(Color.FromArgb(255, 0, 0)) +
-                    "lo".ParseCS().WithBold().WithItalic().WithForeground(Blue) +
+                    "lo".ParseCS().WithBold().WithItalic().WithForeground(Color.Blue) +
                     " " +
                     "World".ParseCS().WithUnderline();
 

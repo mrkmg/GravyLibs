@@ -1,4 +1,6 @@
+using System;
 using System.Drawing;
+using Gravy.Ansi;
 using Gravy.MetaString;
 
 namespace Gravy.ConsoleString;
@@ -29,14 +31,16 @@ public static class ConsoleStringExtensions
     internal static string ToHex(this Color color)
         => color.A == 0xFF ? (color.ToArgb() & 0x00FFFFFF).ToString("X6") : color.ToArgb().ToString("X8");
     
-    internal static bool IsEquivalent(this Color color1, Color color2)
-        => color1.ToArgb() == color2.ToArgb(); 
 
     public static string ToCsColor(this AnsiColor color)
     {
-        if (color.IsThemeColor) return "@" + color.ThemeColor;
-        if (color.SystemColor.IsNamedColor) return "!" + color.SystemColor.Name;
-        return "#" + color.SystemColor.ToHex();
+        return color.Type switch {
+            AnsiColorType.Ansi16 => "@" + color.Ansi16Color,
+            AnsiColorType.Ansi256 => "$" + color.Ansi256Color,
+            AnsiColorType.Rgb when color.RgbColor.IsNamedColor => "!" + color.RgbColor.Name,
+            AnsiColorType.Rgb => "#" + color.RgbColor.ToHex(),
+            _ => throw new ArgumentOutOfRangeException(),
+        };
     }
 
 

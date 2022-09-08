@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using Gravy.UsingLock;
+﻿using Gravy.UsingLock;
 using JetBrains.Annotations;
 using Timer = System.Timers.Timer;
 

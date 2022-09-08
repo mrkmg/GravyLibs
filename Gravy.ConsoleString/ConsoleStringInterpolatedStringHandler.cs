@@ -49,7 +49,7 @@ public class ConsoleStringInterpolatedStringHandler
         {
             < 0 => new(str.PadLeft(-alignment)),
             > 0 => new(str.PadRight(alignment)),
-            _ => new(str)
+            _ => new(str),
         });
     }
     
@@ -62,7 +62,7 @@ public class ConsoleStringInterpolatedStringHandler
             {
                 < 0 => cs.PadLeft(-alignment),
                 > 0 => cs.PadRight(alignment),
-                _ => cs
+                _ => cs,
             });
             return;
         }
