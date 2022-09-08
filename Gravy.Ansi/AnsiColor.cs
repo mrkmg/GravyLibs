@@ -13,9 +13,9 @@ public readonly struct AnsiColor
 
     public AnsiColor(Ansi16Color ansi16Color)
     {
-        RgbColor = default;
-        Ansi256Color = default;
         Ansi16Color = ansi16Color;
+        Ansi256Color = default;
+        RgbColor = default;
         Type = AnsiColorType.Ansi16;
     }
 
@@ -32,8 +32,8 @@ public readonly struct AnsiColor
     public AnsiColor(Ansi256Color ansi256Color)
     {
         Ansi16Color = default;
-        RgbColor = default;
         Ansi256Color = ansi256Color;
+        RgbColor = default;
         Type = AnsiColorType.Ansi256;
     }
 

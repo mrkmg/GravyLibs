@@ -6,8 +6,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.ConsoleString.Test", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.MetaString", "Gravy.MetaString\Gravy.MetaString.csproj", "{FF5859CC-832D-499A-AB92-4585DD04A5B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.MetaString.Generator", "Gravy.MetaString.Generator\Gravy.MetaString.Generator.csproj", "{B4DD18C0-733F-441C-8416-3BDFB5F8F51C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.MultiHttp", "Gravy.MultiHttp\Gravy.MultiHttp.csproj", "{A7ECF707-A213-483B-B41C-5906FC57D5E3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gravy.MetaString.Test", "Gravy.MetaString.Test\Gravy.MetaString.Test.csproj", "{009242E4-1970-43B1-941D-E97C5F92DA86}"
@@ -36,10 +34,6 @@ Global
 		{FF5859CC-832D-499A-AB92-4585DD04A5B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF5859CC-832D-499A-AB92-4585DD04A5B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF5859CC-832D-499A-AB92-4585DD04A5B6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B4DD18C0-733F-441C-8416-3BDFB5F8F51C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B4DD18C0-733F-441C-8416-3BDFB5F8F51C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B4DD18C0-733F-441C-8416-3BDFB5F8F51C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B4DD18C0-733F-441C-8416-3BDFB5F8F51C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A7ECF707-A213-483B-B41C-5906FC57D5E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A7ECF707-A213-483B-B41C-5906FC57D5E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7ECF707-A213-483B-B41C-5906FC57D5E3}.Release|Any CPU.ActiveCfg = Release|Any CPU

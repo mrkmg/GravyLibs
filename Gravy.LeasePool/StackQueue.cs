@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 namespace Gravy.LeasePool;
 
 [SuppressMessage("ReSharper", "UnusedMember.Global")] // Keeping methods for completeness
-internal class StackQueue<T> : ICollection<T>
+internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<T>
 {
     private T[] _data = new T[1];
     private int _head;
@@ -14,19 +14,31 @@ internal class StackQueue<T> : ICollection<T>
 
     private int NextIndex() => (_head + _length) % _data.Length;
     private int LastIndex() => (_head + _length - 1) % _data.Length;
+    private int IndexOfOffset(int offset) => (_head + offset) % _data.Length;
+
+    private void ResetHeadIfNeeded()
+    {
+        if (_length == 0) _head = -1;
+    }
     
     public bool TryGetOldest([NotNullWhen(true)] out T? obj)
     {
+        var version = _version;
         if (!TryPeekOldest(out obj))
             return false;
+        if (_version != version)
+            throw new InvalidOperationException("Collection was modified");
         RemoveOldest();
         return true;
     } 
     
     public bool TryGetNewest([NotNullWhen(true)] out T? obj)
     {
+        var version = _version;
         if (!TryPeekNewest(out obj))
             return false;
+        if (_version != version)
+            throw new InvalidOperationException("Collection was modified");
         RemoveNewest();
         return true;
     }
@@ -57,6 +69,7 @@ internal class StackQueue<T> : ICollection<T>
     {
         if (_length == 0)
             return false;
+        _version++;
         _data[_head] = default!;
         _head++;
         _head %= _data.Length;
@@ -70,11 +83,11 @@ internal class StackQueue<T> : ICollection<T>
     {
         if (_length == 0)
             return false;
+        _version++;
         var idx = LastIndex();
         _data[idx] = default!;
         _length--;
         ResetHeadIfNeeded();
-        _version++;
         return true;
     }
 
@@ -83,6 +96,8 @@ internal class StackQueue<T> : ICollection<T>
         if (obj is null)
             throw new ArgumentNullException(nameof(obj));
         
+        _version++;
+        
         if (_length == _data.Length)
             Expand();
         
@@ -90,22 +105,21 @@ internal class StackQueue<T> : ICollection<T>
         _data[next] = obj;
         _head = next;
         _length++;
-        _version++;
     }
 
     private void Expand()
     {
         var newArr = new T[_data.Length * 2];
+        _version++;
         
         if (_length == 0)
         {
             _data = newArr;
             _head = -1;
-            _version++;
             return;
         }
         
-        if (_head + _length < _data.Length)
+        if (_head + _length <= _data.Length)
         {
             Array.Copy(_data, _head, newArr, 0, _length);
         }
@@ -116,17 +130,17 @@ internal class StackQueue<T> : ICollection<T>
             Array.Copy(_data, _head, newArr, 0, endLen);
             Array.Copy(_data, 0, newArr, endLen, benLen);
         }
-        List<T> list = new List<T>();
         _data = newArr;
         _head = 0;
-        _version++;
     }
+
+    #region InterfaceImplementations
 
     public void Clear()
     {
+        _version++;
         _head = -1;
         _length = 0;
-        _version++;
     }
 
     public bool Contains(T item) => _data.Contains(item);
@@ -148,6 +162,7 @@ internal class StackQueue<T> : ICollection<T>
 
     public bool Remove(T item)
     {
+        _version++;
         var newArr = new T[_data.Length];
         var newI = 0;
         var didRemove = false;
@@ -163,22 +178,26 @@ internal class StackQueue<T> : ICollection<T>
         }
         _length = newI;
         _head = 0;
-        _version++;
         return didRemove;
     }
-
-    public int Count => _data.Length;
-     
-    public bool IsReadOnly => false;
-
-    private void ResetHeadIfNeeded()
+    
+    public void CopyTo(Array array, int index)
     {
-        if (_length == 0) _head = -1;
+        if (array is not T[] arr)
+            throw new ArgumentException("Array must be of type T[]", nameof(array));
+        CopyTo(arr, index);
     }
+
+    public int Count => _length;
+    public bool IsSynchronized => false;
+    public object SyncRoot => this;
+    public bool IsReadOnly => false;
 
     public IEnumerator<T> GetEnumerator() => new StackQueueEnumerator(this);
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    #endregion
 
     private class StackQueueEnumerator : IEnumerator<T>
     {
@@ -200,7 +219,8 @@ internal class StackQueue<T> : ICollection<T>
             ValidateVersion();
             if (_offset >= _stackQueue._length)
                 return false;
-            Current = _stackQueue._data[(_stackQueue._head + _offset++) % _stackQueue._data.Length]!;
+            var idx = _stackQueue.IndexOfOffset(_offset++);
+            Current = _stackQueue._data[idx]!;
             return true;
         }
 
