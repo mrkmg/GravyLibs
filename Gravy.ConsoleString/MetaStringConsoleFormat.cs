@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -6,7 +7,6 @@ using System.Text;
 using Gravy.Ansi;
 using Gravy.ConsoleString.Tags;
 using Gravy.MetaString;
-using JetBrains.Annotations;
 
 
 namespace Gravy.ConsoleString;
@@ -15,33 +15,51 @@ using ConsoleString = MetaString<ConsoleFormat>;
 
 public static class MetaStringConsoleFormat
 {
+    private static ConsoleString Transform(this ConsoleString cs, Func<ConsoleFormat, ConsoleFormat> action) 
+        => new(cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, action(x.Data))));
+
     public static ConsoleString From(this string str, ConsoleFormat format) => new (str, format);
     public static ConsoleString With(this ConsoleString cs, ConsoleFormat format) => new (cs.RawText, format);
-    public static ConsoleString WithForeground(this ConsoleString cs, AnsiColor? color) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithForeground(color))));
-    public static ConsoleString WithBackground(this ConsoleString cs, AnsiColor? color) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithBackground(color))));
-    public static ConsoleString WithStyle(this ConsoleString cs, FontStyle style) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithStyle(style))));
-    public static ConsoleString WithoutStyle(this ConsoleString cs, FontStyle style) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithoutStyle(style))));
-    public static ConsoleString WithWeight(this ConsoleString cs, FontWeight weight) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.WithWeight(weight))));
-    public static ConsoleString ResetStyle(this ConsoleString cs) 
-        => new (cs.MetaData.Select(x => new MetaEntry<ConsoleFormat>(x.Text, x.Data.ResetStyle())));
-    public static ConsoleString WithNormal(this ConsoleString cs) => cs.WithWeight(FontWeight.Normal);
-    public static ConsoleString WithBold(this ConsoleString cs) => cs.WithWeight(FontWeight.Bold);
-    public static ConsoleString WithLight(this ConsoleString cs) => cs.WithWeight(FontWeight.Light);
-    public static ConsoleString WithItalic(this ConsoleString cs) => cs.WithStyle(FontStyle.Italic);
-    public static ConsoleString WithoutItalic(this ConsoleString cs) => cs.WithoutStyle(FontStyle.Italic);
-    public static ConsoleString WithUnderline(this ConsoleString cs) => cs.WithStyle(FontStyle.Underline);
-    public static ConsoleString WithoutUnderline(this ConsoleString cs) => cs.WithoutStyle(FontStyle.Underline);
-    public static ConsoleString WithBlink(this ConsoleString cs) => cs.WithStyle(FontStyle.Blink);
-    public static ConsoleString WithoutBlink(this ConsoleString cs) => cs.WithoutStyle(FontStyle.Blink);
-    public static ConsoleString WithInverse(this ConsoleString cs) => cs.WithStyle(FontStyle.Inverse);
-    public static ConsoleString WithoutInverse(this ConsoleString cs) => cs.WithoutStyle(FontStyle.Inverse);
-    public static ConsoleString WithStrikeThrough(this ConsoleString cs) => cs.WithStyle(FontStyle.StrikeThrough);
-    public static ConsoleString WithoutStrikeThrough(this ConsoleString cs) => cs.WithoutStyle(FontStyle.StrikeThrough);
+    public static ConsoleString WithForeground(this ConsoleString cs, AnsiColor? color) => cs.Transform(x => x.WithForeground(color));
+    public static ConsoleString WithBackground(this ConsoleString cs, AnsiColor? color) => cs.Transform(x => x.WithBackground(color));
+    public static ConsoleString WithStyle(this ConsoleString cs, FontStyle style) => cs.Transform(x => x.WithStyle(style));
+    public static ConsoleString WithoutStyle(this ConsoleString cs, FontStyle style) => cs.Transform(x => x.WithoutStyle(style));
+    public static ConsoleString WithWeight(this ConsoleString cs, FontWeight weight) => cs.Transform(x => x.WithWeight(weight));
+    public static ConsoleString ResetStyle(this ConsoleString cs) => cs.Transform(x => x.ResetStyle());
+    public static ConsoleString WithNormal(this ConsoleString cs) => cs.Transform(x => x.WithNormal());
+    public static ConsoleString WithBold(this ConsoleString cs) => cs.Transform(x => x.WithBold());
+    public static ConsoleString WithLight(this ConsoleString cs) => cs.Transform(x => x.WithLight());
+    public static ConsoleString WithItalic(this ConsoleString cs) => cs.Transform(x => x.WithItalic());
+    public static ConsoleString WithoutItalic(this ConsoleString cs) => cs.Transform(x => x.WithoutItalic());
+    public static ConsoleString WithUnderline(this ConsoleString cs) => cs.Transform(x => x.WithUnderline());
+    public static ConsoleString WithoutUnderline(this ConsoleString cs) => cs.Transform(x => x.WithoutUnderline());
+    public static ConsoleString WithBlink(this ConsoleString cs) => cs.Transform(x => x.WithBlink());
+    public static ConsoleString WithoutBlink(this ConsoleString cs) => cs.Transform(x => x.WithoutBlink());
+    public static ConsoleString WithInverse(this ConsoleString cs) => cs.Transform(x => x.WithInverse());
+    public static ConsoleString WithoutInverse(this ConsoleString cs) => cs.Transform(x => x.WithoutInverse());
+    public static ConsoleString WithStrikeThrough(this ConsoleString cs) => cs.Transform(x => x.WithStrikeThrough());
+    public static ConsoleString WithoutStrikeThrough(this ConsoleString cs) => cs.Transform(x => x.WithoutStrikeThrough());
+    public static ConsoleString AsConsoleString(this string str) => new(str);
+    public static ConsoleString With(this string str, ConsoleFormat format) => new(str, format);
+    public static ConsoleString With(this string str, FontWeight weight) => new(str, new(null, null, weight));
+    public static ConsoleString With(this string str, FontStyle style) => new(str, new(null, null, default, style));
+    public static ConsoleString With(this string str, AnsiColor? foreground = null, AnsiColor? background = null, FontWeight weight = FontWeight.Normal, FontStyle styles = FontStyle.None)
+        => new(str, new(foreground, background, weight, styles));
+    
+    internal static string ToHex(this Color color)
+        => color.A == 0xFF ? (color.ToArgb() & 0x00FFFFFF).ToString("X6") : color.ToArgb().ToString("X8");
+    
+
+    public static string ToCsColor(this AnsiColor color)
+    {
+        return color.Type switch {
+            AnsiColorType.Ansi16 => "@" + color.Ansi16Color,
+            AnsiColorType.Ansi256 => "$" + color.Ansi256Color,
+            AnsiColorType.Rgb when color.RgbColor.IsNamedColor => "!" + color.RgbColor.Name,
+            AnsiColorType.Rgb => "#" + color.RgbColor.ToHex(),
+            _ => throw new ("Missing color type"),
+        };
+    }
     
     /// <summary>
     /// Parses a string with ConsoleStringTags into a ConsoleString
@@ -78,7 +96,7 @@ public static class MetaStringConsoleFormat
     /// <b>[/V]</b>       Disable Inverse.<br />
     /// <b>[//]</b>       Reset all styles.
     /// </remarks>
-    public static ConsoleString FromTags(this string str, bool strictMode = false) 
+    public static ConsoleString ParseTags(this string str, bool strictMode = false) 
         => Assembler.Assemble(Tokenizer.Tokenize(str), strictMode).Optimize();
     
     public static string EscapeTags(this string str) => string.Join(@"\[", str.Split('['));

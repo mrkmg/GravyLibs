@@ -44,7 +44,7 @@ public class Tags
     public class ErrorChecking
     {
         [Test] public void NoTags() 
-            => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".ParseCS()));
+            => "This\n is\r\n a simple\r string".WhenParsed(Is.EqualTo("This\n is\r\n a simple\r string".ParseTags()));
 
         [Test] public void ResetThrowsInStrict() 
             => "This\n is\r\n a sim[//]ple\r string".WhenParsedStrictly(
@@ -94,6 +94,9 @@ public class Tags
         [Test] public void WithDuplicateStyleTags()
             => @"[I][I]Test[/I]Test[/I]".WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateStyleException>());
         
+        [Test] public void WithDuplicateWeightTags()
+            => @"[B][B]Test[/B]Test[/B]".WhenParsedStrictly(Throws.Exception.TypeOf<DuplicateWeightException>());
+        
         [Test] public void WithMissingBracketOnStartTag()
             => @"[BTesting[/B] Testing".WhenParsed(Throws.Exception.TypeOf<MissingCloseBracketException>());
         
@@ -130,16 +133,16 @@ public class Tags
     
     public class ToTags
     {
-        public ConsoleString BoldEscape = "Hello".ParseCS().WithBold() + @"\" + "World".ParseCS().WithItalic();
-        public ConsoleString Overlapping = "He".ParseCS().WithBold().WithForeground(Color.Red) +
-                    "llo".ParseCS().WithBold() +
+        public ConsoleString BoldEscape = "Hello".ParseTags().WithBold() + @"\" + "World".ParseTags().WithItalic();
+        public ConsoleString Overlapping = "He".ParseTags().WithBold().WithForeground(Color.Red) +
+                    "llo".ParseTags().WithBold() +
                     " " +
-                    "Wo".ParseCS().WithItalic().WithBackground(Color.Green) +
-                    "rld".ParseCS().WithBackground(Color.Green);
-        public ConsoleString ColorVariety = "Hel".ParseCS().WithBold().WithItalic().WithForeground(Color.FromArgb(255, 0, 0)) +
-                    "lo".ParseCS().WithBold().WithItalic().WithForeground(Color.Blue) +
+                    "Wo".ParseTags().WithItalic().WithBackground(Color.Green) +
+                    "rld".ParseTags().WithBackground(Color.Green);
+        public ConsoleString ColorVariety = "Hel".ParseTags().WithBold().WithItalic().WithForeground(Color.FromArgb(255, 0, 0)) +
+                    "lo".ParseTags().WithBold().WithItalic().WithForeground(Color.Blue) +
                     " " +
-                    "World".ParseCS().WithUnderline();
+                    "World".ParseTags().WithUnderline();
 
         [Test] public void BoldAndEscape() => BoldEscape.WhenTagged(Is.EqualTo("[B]Hello[/B]\\[I]World[/I]"));
         [Test] public void BoldAndEscapeWithReset() => BoldEscape.WhenTaggedWithReset(Is.EqualTo("[B]Hello[//]\\[I]World[//]"));
@@ -153,10 +156,10 @@ public class Tags
 public static class TagsTestExtension
 {
     public static void WhenParsed(this string taggedString, IResolveConstraint c)
-        => Assert.That(() => taggedString.FromTags(), c);
+        => Assert.That(() => taggedString.ParseTags(), c);
     
     public static void WhenParsedStrictly(this string taggedString, IResolveConstraint c)
-        => Assert.That(() => taggedString.FromTags(true), c);
+        => Assert.That(() => taggedString.ParseTags(true), c);
     
     public static void WhenTagged(this ConsoleString consoleString, IResolveConstraint c)
         => Assert.That(() => consoleString.ToTaggedString(), c);

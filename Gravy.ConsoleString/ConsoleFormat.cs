@@ -21,6 +21,10 @@ public readonly struct ConsoleFormat : IMetaDebuggable<ConsoleFormat>
         Styles = styles;
     }
     
+    public ConsoleFormat(FontWeight weight) : this(null, null, weight) { }
+    public ConsoleFormat(FontStyle styles) : this(null, null, FontWeight.Normal, styles) { }
+    public ConsoleFormat(FontWeight weight, FontStyle styles) : this(null, null, weight, styles) { }
+
     public ConsoleFormat WithForeground(AnsiColor? foreground) => new(foreground, BackgroundColor, Weight, Styles);
     public ConsoleFormat WithBackground(AnsiColor? background) => new(ForegroundColor, background, Weight, Styles);
     

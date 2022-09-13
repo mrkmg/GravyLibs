@@ -18,7 +18,8 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
 
     private void ResetHeadIfNeeded()
     {
-        if (_length == 0) _head = -1;
+        if (_length == 0)
+            _head = 0;
     }
     
     public bool TryGetOldest([NotNullWhen(true)] out T? obj)
@@ -95,15 +96,14 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
     {
         if (obj is null)
             throw new ArgumentNullException(nameof(obj));
-        
-        _version++;
-        
+
         if (_length == _data.Length)
             Expand();
+        else
+            _version++;
         
         var next = NextIndex();
         _data[next] = obj;
-        _head = next;
         _length++;
     }
 
@@ -115,7 +115,7 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
         if (_length == 0)
         {
             _data = newArr;
-            _head = -1;
+            _head = 0;
             return;
         }
         
@@ -139,7 +139,7 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
     public void Clear()
     {
         _version++;
-        _head = -1;
+        _head = 0;
         _length = 0;
     }
 
