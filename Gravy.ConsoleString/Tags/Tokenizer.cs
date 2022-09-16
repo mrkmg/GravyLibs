@@ -10,12 +10,12 @@ namespace Gravy.ConsoleString.Tags;
 
 internal class Tokenizer
 {
-    private static IDictionary<string, Ansi16Color> _ansi16ColorMap
+    private static readonly IDictionary<string, Ansi16Color> Ansi16ColorMap
         = Enum.GetNames<Ansi16Color>()
             .Zip(Enum.GetValues<Ansi16Color>())
             .ToDictionary(x => x.First, x => x.Second);
     
-    private static IDictionary<string, Ansi256Color> _ansi256ColorMap
+    private static readonly IDictionary<string, Ansi256Color> Ansi256ColorMap
         = Enum.GetNames<Ansi256Color>()
             .Zip(Enum.GetValues<Ansi256Color>())
             .ToDictionary(x => x.First, x => x.Second);
@@ -259,14 +259,14 @@ internal class Tokenizer
 
     private AnsiColor ReadColorThemeValue(string themeValue)
     {
-        if (_ansi16ColorMap.TryGetValue(themeValue, out var color))
+        if (Ansi16ColorMap.TryGetValue(themeValue, out var color))
             return color;
         throw new UnknownThemeColorException("Unknown Color", themeValue, CurrentLine, CurrentColumn);
     }
 
     private AnsiColor ReadColorAnsi256Value(string ansi256Color)
     {
-        if (_ansi256ColorMap.TryGetValue(ansi256Color, out var color))
+        if (Ansi256ColorMap.TryGetValue(ansi256Color, out var color))
             return color;
         throw new UnknownThemeColorException("Unknown Color", ansi256Color, CurrentLine, CurrentColumn);
     }

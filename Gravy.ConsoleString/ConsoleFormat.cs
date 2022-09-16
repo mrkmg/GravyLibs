@@ -70,3 +70,21 @@ public readonly struct ConsoleFormat : IMetaDebuggable<ConsoleFormat>
         => HashCode.Combine(ForegroundColor, BackgroundColor, (int)Weight, (int)Styles);
     
 }
+
+[Flags]
+public enum FontStyle
+{
+    None = 0,
+    Italic = 1,
+    Underline = 2,
+    Blink = 8,
+    Inverse = 16,
+    StrikeThrough = 32,
+}
+
+public enum FontWeight
+{
+    Normal,
+    Bold,
+    Light,
+}

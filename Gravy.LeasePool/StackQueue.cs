@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
@@ -21,7 +22,6 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
         if (_length == 0)
             _head = 0;
     }
-    
     public bool TryGetOldest([NotNullWhen(true)] out T? obj)
     {
         var version = _version;
@@ -72,11 +72,9 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
             return false;
         _version++;
         _data[_head] = default!;
-        _head++;
-        _head %= _data.Length;
+        _head = (_head + 1) % _data.Length;
         _length--;
         ResetHeadIfNeeded();
-        _version++;
         return true;
     }
 
@@ -85,8 +83,7 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
         if (_length == 0)
             return false;
         _version++;
-        var idx = LastIndex();
-        _data[idx] = default!;
+        _data[LastIndex()] = default!;
         _length--;
         ResetHeadIfNeeded();
         return true;
@@ -109,15 +106,10 @@ internal class StackQueue<T> : ICollection<T>, ICollection, IReadOnlyCollection<
 
     private void Expand()
     {
+        Debug.Assert(_length > 0);
+        
         var newArr = new T[_data.Length * 2];
         _version++;
-        
-        if (_length == 0)
-        {
-            _data = newArr;
-            _head = 0;
-            return;
-        }
         
         if (_head + _length <= _data.Length)
         {

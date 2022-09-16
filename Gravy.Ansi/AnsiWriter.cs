@@ -117,6 +117,7 @@ public static class AnsiWriter
             Ansi16Color.Magenta => AnsiMode.ForegroundMagenta,
             Ansi16Color.Cyan => AnsiMode.ForegroundCyan,
             Ansi16Color.White => AnsiMode.ForegroundWhite,
+            
             Ansi16Color.BrightBlack => AnsiMode.ForegroundBrightBlack,
             Ansi16Color.BrightRed => AnsiMode.ForegroundBrightRed,
             Ansi16Color.BrightGreen => AnsiMode.ForegroundBrightGreen,

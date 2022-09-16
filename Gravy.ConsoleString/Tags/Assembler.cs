@@ -95,10 +95,10 @@ internal class Assembler
                     FontStyleCounts[styleStopToken.FontStyle].TryPop(out _);
                     break;
                 
+                case Token.ResetAllToken when StrictMode:
+                    throw new ResetAllInStrictModeException(token.Line, token.Column);
+                
                 case Token.ResetAllToken:
-                    // No reset in strict mode.
-                    if (StrictMode)
-                        throw new ResetAllInStrictModeException(token.Line, token.Column);
                     BackgroundStack.Clear();
                     ForegroundStack.Clear();
                     WeightStack.Clear();
