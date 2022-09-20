@@ -2,7 +2,7 @@ namespace Gravy.MultiHttp;
 
 public class DownloadDefinition : IDownloadDefinition
 {
-    public string SourceUri { get; init; } = string.Empty;
-    public string DestinationFilePath { get; init; } = string.Empty;
+    public required string SourceUri { get; init; }
+    public required string DestinationFilePath { get; init; }
     public bool Overwrite { get; init; } = true;
 }

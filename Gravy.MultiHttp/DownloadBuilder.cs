@@ -1,6 +1,6 @@
 ﻿namespace Gravy.MultiHttp;
 
-public class DownloadBuilder
+public class DownloadBuilder : IPathedDownloadBuilder
 {
     private const int DefaultChunkSize = 1024 * 1024 * 20; // 20MB
     private const int DefaultConcurrency = 4;
@@ -20,84 +20,127 @@ public class DownloadBuilder
     private readonly List<Action<IFileInstance>> _onFileEndedHandler = new();
     private readonly List<Action<(IFileInstance File, Exception Exception)>> _onFileErrorHandler = new();
     
-    private readonly List<DownloadDefinition> _downloads = new();
+    private readonly List<IDownloadDefinition> _downloads = new();
 
-    public DownloadBuilder WithMaxChunkSize(long maxChunkSize)
+    private DownloadBuilder() { }
+    
+    public static IDownloadBuilder Create() => new DownloadBuilder();
+
+    public static IPathedDownloadBuilder Create(string destinationPath)
+        => new DownloadBuilder().WithDestinationPath(destinationPath);
+
+    public IDownloadBuilder WithMaxChunkSize(long maxChunkSize)
     {
         _maxChunkSize = maxChunkSize;
         return this;
     }
     
-    public DownloadBuilder WithMaxConcurrency(int maxConcurrency)
+    public IDownloadBuilder WithMaxConcurrency(int maxConcurrency)
     {
         _maxConcurrency = maxConcurrency;
         return this;
     }
     
-    public DownloadBuilder WithFileDestinationType(FileWriterType fileWriterType)
+    public IDownloadBuilder WithFileDestinationType(FileWriterType fileWriterType)
     {
         _fileWriterType = fileWriterType;
         return this;
     }
     
-    public DownloadBuilder ConfigureHttpClient(Action<HttpClient> configure)
+    public IDownloadBuilder ConfigureHttpClient(Action<HttpClient> configure)
     {
         configure(_client);
         return this;
     }
     
-    public DownloadBuilder OnStarted(Action handler) {
+    public IDownloadBuilder OnStarted(Action handler) {
         _onStartedHandlers.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnProgress(Action<IOverallProgress> handler) {
+    public IDownloadBuilder OnProgress(Action<IOverallProgress> handler) {
         _onProgressHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnEnded(Action<bool> handler) {
+    public IDownloadBuilder OnEnded(Action<bool> handler) {
         _onEndedHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnError(Action<Exception> handler) {
+    public IDownloadBuilder OnError(Action<Exception> handler) {
         _onErrorHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnFileStarted(Action<IFileInstance> handler) {
+    public IDownloadBuilder OnFileStarted(Action<IFileInstance> handler) {
         _onFileStartedHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnFileProgress(Action<IFileProgress> handler) {
+    public IDownloadBuilder OnFileProgress(Action<IFileProgress> handler) {
         _onFileProgressHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnFileEnded(Action<IFileInstance> handler) {
+    public IDownloadBuilder OnFileEnded(Action<IFileInstance> handler) {
         _onFileEndedHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder OnFileError(Action<(IFileInstance File, Exception Exception)> handler) {
+    public IDownloadBuilder OnFileError(Action<(IFileInstance File, Exception Exception)> handler) {
         _onFileErrorHandler.Add(handler);
         return this;
     }
     
-    public DownloadBuilder AddDownload(DownloadDefinition download)
+    public IDownloadBuilder AddDownload(IDownloadDefinition download)
     {
         _downloads.Add(download);
         return this;
     }
     
-    public DownloadBuilder AddDownloads(IEnumerable<DownloadDefinition> downloads)
+    public IDownloadBuilder AddDownloads(IEnumerable<IDownloadDefinition> downloads)
     {
         _downloads.AddRange(downloads);
         return this;
     }
+
+    private string? _currentDownloadPath = null;
+    public IPathedDownloadBuilder WithDestinationPath(string destinationPath)
+    {
+        _currentDownloadPath = destinationPath;
+        return this;
+    }
     
+    private void AddDownloadInternal(string url, bool overwrite)
+    {
+        var uri = new Uri(url);
+        if (uri.AbsolutePath.EndsWith("/"))
+            throw new ArgumentException("URL does not have a file name", nameof(url));
+        var fileName = Path.GetFileName(uri.AbsolutePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException("URL does not have a file name", nameof(url));
+        _downloads.Add(new DownloadDefinition
+        {
+            SourceUri = url, 
+            DestinationFilePath= Path.Combine(_currentDownloadPath ?? throw new InvalidOperationException("Destination path not set"), fileName),
+            Overwrite = overwrite,
+        });
+    }
+
+    public IPathedDownloadBuilder AddDownload(string url, bool overwrite = false)
+    {
+        AddDownloadInternal(url, overwrite);
+        return this;
+    }
+
+    public IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls, bool overwrite = false)
+    {
+        foreach (var url in urls)
+            AddDownloadInternal(url, overwrite);
+        return this;
+    }
+
     public IDownloadSession Build()
     {
         var session = new DownloadSession(_maxChunkSize, _maxConcurrency, _fileWriterType, _client);

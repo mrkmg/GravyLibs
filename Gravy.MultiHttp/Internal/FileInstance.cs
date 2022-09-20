@@ -38,7 +38,7 @@ internal class FileInstance : IFileInstance, IDisposable
             FileWriterType.Hybrid => new HybridFileWriter(this),
             FileWriterType.InMemory => new MemoryFileWriter(this),
             FileWriterType.Direct => new DirectWriter(this),
-            FileWriterType.Sequential => new SequentialWriter(this),
+            FileWriterType.DirectSequential => new SequentialWriter(this),
             _ => throw new ArgumentOutOfRangeException(nameof(writerType), writerType, null),
         };
     }

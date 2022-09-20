@@ -16,10 +16,10 @@ public enum FileWriterType
     InMemory,
     
     /// <summary>Writes data to the destination file directly.</summary>
-    /// <remarks>Low memory and cpu usage, but very high disk usage. This is terribly inefficient, and should not be used.</remarks>
+    /// <remarks>Low memory and cpu usage. This is terribly inefficient as there are many seeks in the file, and should only be used in very restricted environments.</remarks>
     Direct,
     
-    /// <summary>Writes data to the destination file directly, sequentially.</summary>
+    /// <summary>Writes data to the destination file directly, enforcing sequential writes.</summary>
     /// <remarks>Used internally to deal with Single Chunk downloads. Shouldn't be used by consumers.</remarks>
-    Sequential,
+    DirectSequential,
 }

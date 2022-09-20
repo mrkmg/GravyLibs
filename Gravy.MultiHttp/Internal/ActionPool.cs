@@ -25,16 +25,29 @@ internal class ActionPool
 
     private void MonitorThread()
     {
-        foreach (var thread in _threads) thread.Join();
-        
+        foreach (var thread in _threads)
+            thread.Join();
+
         if (_exceptions.IsEmpty)
+        {
             _tcs.SetResult();
-        else if (_exceptions.All(e => e is OperationCanceledException))
-            _tcs.SetCanceled();
-        else if (_exceptions.Count == 1)
-            _tcs.SetException(_exceptions.First());
-        else
-            _tcs.SetException(_exceptions.Where(e => e is not OperationCanceledException));
+            return;
+        }
+        
+        var exceptions = _exceptions.Where(e => e is not OperationCanceledException).ToArray();
+        
+        switch (exceptions.Length)
+        {
+            case 0:
+                _tcs.SetCanceled();
+                break;
+            case 1:
+                _tcs.SetException(exceptions[0]);
+                break;
+            default:
+                _tcs.SetException(exceptions);
+                break;
+        }
     }
     
     private Thread CreateThread(Action action)

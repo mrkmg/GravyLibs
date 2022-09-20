@@ -9,8 +9,9 @@ public struct DynamicallySizedBuffer
     private int _lastTickCount;
     private int _averageTicks;
     private byte[] _buffer;
-    
+
     public Memory<byte> Memory => new (_buffer);
+    public Span<byte> Span => new (_buffer);
     
     public DynamicallySizedBuffer(int initialSize, int minTicksPerOperation, int maxTicksPerOperation, int minSize, int maxSize)
     {

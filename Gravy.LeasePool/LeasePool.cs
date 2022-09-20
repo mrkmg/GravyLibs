@@ -159,6 +159,9 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <inheritdoc />
     public ILease<T> Lease(int millisecondsTimeout)
     {
+        if (_isDisposed)
+            throw new ObjectDisposedException(nameof(LeasePool<T>));
+        
         var leaseTask = LeaseAsync(millisecondsTimeout);
         leaseTask.Wait();
         if (leaseTask.IsCompletedSuccessfully)
@@ -200,8 +203,8 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             throw new InvalidOperationException("Lease is not from this pool");
 
         OnReturn(obj.Value);
-        ReleaseLease();
         _objects.Do(objs => objs.Add(new(obj.Value)));
+        ReleaseLease();
         TriggerTimer();
     }
 
@@ -219,8 +222,9 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             {
                 if (item.LastUsed.AddMilliseconds(IdleTimeout) < DateTime.Now)
                     return;
+                if (!objects.Remove(item))
+                    throw new ("Something went wrong.");
                 Finalize(item.Object);
-                objects.Remove(item);
             }            
         });
         
