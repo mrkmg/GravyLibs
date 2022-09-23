@@ -6,45 +6,45 @@ namespace Gravy.Ansi;
 [PublicAPI]
 public static class AnsiWriter
 {
-    public static void Bell(this TextWriter w) => w.Write(Codes.Bell);
+    public static void Bell(this TextWriter w) => w.Write('\a');
 
-    public static void SetTitle(this TextWriter w, string title) => w.Write($"{Codes.Escape}]0;{title}{Codes.Bell}");
+    public static void SetTitle(this TextWriter w, string title) => w.Write($"\u001B]0;{title}\a");
 
-    public static void ResizeWindow(this TextWriter w, int lines, int columns) => w.Write($"{Codes.Escape}[8;{lines};{columns}t");
+    public static void ResizeWindow(this TextWriter w, int lines, int columns) => w.Write($"\u001B[8;{lines};{columns}t");
 
-    public static void HideCursor(this TextWriter w) => w.Write($"{Codes.Escape}[?25l");
+    public static void HideCursor(this TextWriter w) => w.Write("[?25l");
 
-    public static void ShowCursor(this TextWriter w) => w.Write($"{Codes.Escape}[?25h");
+    public static void ShowCursor(this TextWriter w) => w.Write("[?25h");
 
-    public static void VisualBell(this TextWriter w) => w.Write($"{Codes.Escape}g");
+    public static void VisualBell(this TextWriter w) => w.Write("g");
 
-    public static void ResetState(this TextWriter w) => w.Write($"{Codes.Escape}c");
+    public static void ResetState(this TextWriter w) => w.Write("c");
 
-    public static void SaveState(this TextWriter w) => w.Write($"{Codes.Escape}[s");
+    public static void SaveState(this TextWriter w) => w.Write("[s");
 
-    public static void RestoreState(this TextWriter w) => w.Write($"{Codes.Escape}[u");
+    public static void RestoreState(this TextWriter w) => w.Write("[u");
 
-    public static void SetCursorHome(this TextWriter w) => w.Write($"{Codes.Escape}[H");
+    public static void SetCursorHome(this TextWriter w) => w.Write("[H");
 
-    public static void SetCursorPosition(this TextWriter w, int line, int col) => w.Write($"{Codes.Escape}[{line};{col}H");
+    public static void SetCursorPosition(this TextWriter w, int line, int col) => w.Write($"\u001B[{line};{col}H");
 
-    public static void EraseScreen(this TextWriter w) => w.Write($"{Codes.Escape}[2J");
+    public static void EraseScreen(this TextWriter w) => w.Write("[2J");
 
-    public static void EraseScreenToCursor(this TextWriter w) => w.Write($"{Codes.Escape}[1J");
+    public static void EraseScreenToCursor(this TextWriter w) => w.Write("[1J");
 
-    public static void EraseScreenFromCursor(this TextWriter w) => w.Write($"{Codes.Escape}[0J");
+    public static void EraseScreenFromCursor(this TextWriter w) => w.Write("[0J");
 
-    public static void EraseLine(this TextWriter w) => w.Write($"{Codes.Escape}[2K");
+    public static void EraseLine(this TextWriter w) => w.Write("[2K");
 
-    public static void EraseLineToCursor(this TextWriter w) => w.Write($"{Codes.Escape}[1K");
+    public static void EraseLineToCursor(this TextWriter w) => w.Write("[1K");
 
-    public static void EraseLineFromCursor(this TextWriter w) => w.Write($"{Codes.Escape}[0K");
+    public static void EraseLineFromCursor(this TextWriter w) => w.Write("[0K");
 
     public static void SetMode(this TextWriter w, params AnsiMode[] modes) => SetMode(w, (IEnumerable<AnsiMode>)modes);
-    public static void SetMode(this TextWriter w, IEnumerable<AnsiMode> modes) => w.Write($"{Codes.Escape}[{string.Join(";", modes.Select(m => (int)m))}m");
+    public static void SetMode(this TextWriter w, IEnumerable<AnsiMode> modes) => w.Write($"\u001B[{string.Join(";", modes.Select(m => (int)m))}m");
     
-    private static void SetColorColor(this TextWriter w, AnsiMode mode, Color color) => w.Write($"{Codes.Escape}[{(byte)mode};2;{color.R};{color.G};{color.B}m");
-    private static void Set256Color(this TextWriter w, AnsiMode mode, Ansi256Color color) => w.Write($"{Codes.Escape}[{(byte)mode};5;{(int)color}m");
+    private static void SetColorColor(this TextWriter w, AnsiMode mode, Color color) => w.Write($"\u001B[{(byte)mode};2;{color.R};{color.G};{color.B}m");
+    private static void Set256Color(this TextWriter w, AnsiMode mode, Ansi256Color color) => w.Write($"\u001B[{(byte)mode};5;{(int)color}m");
     
     public static void SetBackgroundColor(this TextWriter w, AnsiColor color)
     {
@@ -82,7 +82,7 @@ public static class AnsiWriter
         }
     }
 
-    private static void AnsiEscapePrefix(this TextWriter w, int count, char code) => w.Write($"{Codes.Escape}[{count}{code}");
+    private static void AnsiEscapePrefix(this TextWriter w, int count, char code) => w.Write($"\u001B[{count}{code}");
 
     public static void Up(this TextWriter w, int count = 1) => w.AnsiEscapePrefix(count, 'A');
 
@@ -151,12 +151,6 @@ public static class AnsiWriter
             Ansi16Color.BrightWhite => AnsiMode.BackgroundBrightWhite,
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, null),
         };
-
-    private static class Codes
-    {
-        public const char Escape = '\u001B';
-        public const char Bell = '\a';
-    }
 }
 
 public enum AnsiMode

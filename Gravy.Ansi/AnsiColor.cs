@@ -19,6 +19,14 @@ public readonly struct AnsiColor
         Type = AnsiColorType.Ansi16;
     }
 
+    public AnsiColor(Ansi256Color ansi256Color)
+    {
+        Ansi16Color = default;
+        Ansi256Color = ansi256Color;
+        RgbColor = default;
+        Type = AnsiColorType.Ansi256;
+    }
+
     public AnsiColor(Color color)
     {
         if (color.A != 0xFF)
@@ -27,14 +35,6 @@ public readonly struct AnsiColor
         Ansi256Color = default;
         RgbColor = color;
         Type = AnsiColorType.Rgb;
-    }
-
-    public AnsiColor(Ansi256Color ansi256Color)
-    {
-        Ansi16Color = default;
-        Ansi256Color = ansi256Color;
-        RgbColor = default;
-        Type = AnsiColorType.Ansi256;
     }
 
     public AnsiColor(int ansi256Color) : this((Ansi256Color)ansi256Color)
