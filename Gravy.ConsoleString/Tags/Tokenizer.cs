@@ -245,12 +245,13 @@ internal class Tokenizer
     private AnsiColor ReadCurrentColor()
     {
         var nextIndex = NextCloseBracketIndex();
+        var data = SourceText[(Index + 1)..nextIndex];
         var color = Char switch
         {
-            '#' => ReadColorHexValue(SourceText[(Index+1)..nextIndex]),
-            '!' => ReadColorNameValue(SourceText[(Index+1)..nextIndex]),
-            '@' => ReadColorThemeValue(SourceText[(Index+1)..nextIndex]),
-            '$' => ReadColorAnsi256Value(SourceText[(Index+1)..nextIndex]),
+            '#' => ReadColorHexValue(data),
+            '!' => ReadColorNameValue(data),
+            '@' => ReadColorThemeValue(data),
+            '$' => ReadColorAnsi256Value(data),
             _ => throw new InvalidColorParserException(Char, CurrentLine, CurrentColumn),
         };
         MoveTo(nextIndex);
