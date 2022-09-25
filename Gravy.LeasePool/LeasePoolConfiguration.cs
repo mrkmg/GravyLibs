@@ -15,7 +15,7 @@ public class LeasePoolConfiguration<T>
     public int MaxLeases { get; set; } = -1;
 
     /// <summary>
-    /// <para>How long an instance of T can be idle in the pool before it is automatically disposed.</para>
+    /// <para>How long in milliseconds an instance of T can be idle in the pool before it is automatically disposed.</para>
     /// <para>If set to zero, objects are never kept in a pool, and are disposed immediately when returned to the pool.</para>
     /// </summary>
     public int IdleTimeout { get; set; } = -1;

@@ -38,4 +38,8 @@
     <ProjectReference Include="..\Gravy.UsingLock\Gravy.UsingLock.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="$(AssemblyName).Test" />
+  </ItemGroup>
+
 </Project>

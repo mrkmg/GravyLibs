@@ -31,7 +31,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// </summary>
     /// <param name="maxLeases">The maximum number of total instance of T that can be leased or idle in the pool.</param>
     /// <param name="idleTimeout">
-    ///     <para>How long an instance of T can be idle in the pool before it is automatically disposed.</para>
+    ///     <para>How long in milliseconds an instance of T can be idle in the pool before it is automatically disposed.</para>
     /// </param>
     /// <param name="initializer">
     ///     <para>A factory method that creates an instance of T.</para>
@@ -129,8 +129,8 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             var timeout = -1;
             if (millisecondsTimeout != -1)
             {
-                timeout = millisecondsTimeout - Environment.TickCount + start;
-                if (timeout < 0) throw new LeaseTimeoutException(timeout);
+                timeout = millisecondsTimeout - (Environment.TickCount - start);
+                if (timeout < 0) throw new LeaseTimeoutException(millisecondsTimeout);
             }
             var item =  await _objects.DoAsync(timeout, token, objects => objects.TryGetNewest(out var i) ? i.Object : null);
             if (item is not null)
@@ -163,7 +163,16 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             throw new ObjectDisposedException(nameof(LeasePool<T>));
         
         var leaseTask = LeaseAsync(millisecondsTimeout);
-        leaseTask.Wait();
+        try
+        {
+            leaseTask.Wait();
+        }
+        catch (AggregateException ae)
+        {
+            if (ae.InnerExceptions.Count == 1)
+                throw ae.InnerExceptions[0];
+            throw;
+        }
         if (leaseTask.IsCompletedSuccessfully)
             return leaseTask.Result;
         throw leaseTask.Exception ?? new Exception("Lease failed for unknown reasons");
@@ -254,7 +263,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 1)
-                throw new ObjectDisposedException("Lease already disposed.");
+                throw new ObjectDisposedException(nameof(ActiveLease), "Lease already disposed.");
             Pool.Return(this);
         }
     }
