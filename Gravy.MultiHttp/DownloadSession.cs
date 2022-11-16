@@ -20,9 +20,9 @@ public sealed class DownloadSession : IDownloadSession
     }
     
     private const string HeaderAcceptRangesKey = "Accept-Ranges";
-    private const int DefaultBufferSize = 2048;
-    private const int MaxBufferSize = 1024 * 1024;
-    private const int MinBufferSize = 1024;
+    private const int DefaultBufferSize = 2048; // 2KB
+    private const int MaxBufferSize = 8 * 1024 * 1024; // 8MB
+    private const int MinBufferSize = 1024; // 1KB
 
     private readonly FileWriterType _fileWriterType;
     private readonly HttpClient _client;
@@ -135,8 +135,7 @@ public sealed class DownloadSession : IDownloadSession
     {
         file.Writer.FinalizeChunk(chunk.ChunkIndex);
         chunk.Finished();
-        if (!file.CheckAndSetCompleted())
-            return;
+        if (!file.CheckAndSetCompleted()) return;
         
         _overallProgress.FileCompleted(file.Id);
         file.Progress.ChunkCompleted();

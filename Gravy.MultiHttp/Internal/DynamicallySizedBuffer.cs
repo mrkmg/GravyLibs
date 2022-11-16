@@ -15,7 +15,7 @@ public struct DynamicallySizedBuffer
     
     public DynamicallySizedBuffer(int initialSize, int minTicksPerOperation, int maxTicksPerOperation, int minSize, int maxSize)
     {
-        _averageTicks = maxTicksPerOperation + minTicksPerOperation / 2;
+        _averageTicks = (maxTicksPerOperation + minTicksPerOperation) / 2;
         _minTicksPerOperation = minTicksPerOperation;
         _maxTicksPerOperation = maxTicksPerOperation;
         _maxSize = maxSize;
@@ -24,6 +24,9 @@ public struct DynamicallySizedBuffer
         _buffer = new byte[initialSize];
     }
     
+    /// <summary>
+    /// Resizes the buffer if needed. Will clear buffer if resized.
+    /// </summary>
     public void TriggerTick()
     {
         _averageTicks = (int) (_averageTicks * 0.75 + (Environment.TickCount - _lastTickCount) * 0.25);

@@ -19,7 +19,8 @@ internal class ActionPool
 
     public void Start()
     {
-        foreach (var thread in _threads) thread.Start();
+        foreach (var thread in _threads)
+            thread.Start();
         _monitorThread.Start();
     }
 
