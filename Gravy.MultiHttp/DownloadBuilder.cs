@@ -29,77 +29,123 @@ public class DownloadBuilder : IPathedDownloadBuilder
     public static IPathedDownloadBuilder Create(string destinationPath)
         => new DownloadBuilder().WithDestinationPath(destinationPath);
 
-    public IDownloadBuilder WithMaxChunkSize(long maxChunkSize)
+    IDownloadBuilder IDownloadBuilder.WithMaxConcurrency(int maxConcurrency)
+        => ((IPathedDownloadBuilder)this).WithMaxConcurrency(maxConcurrency);
+
+    IDownloadBuilder IDownloadBuilder.WithFileDestinationType(FileWriterType fileWriterType)
+        => ((IPathedDownloadBuilder)this).WithFileDestinationType(fileWriterType);
+
+    IDownloadBuilder IDownloadBuilder.ConfigureHttpClient(Action<HttpClient> configure)
+        => ((IPathedDownloadBuilder)this).ConfigureHttpClient(configure);
+
+    IDownloadBuilder IDownloadBuilder.OnStarted(Action handler)
+        => ((IPathedDownloadBuilder)this).OnStarted(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnProgress(Action<IOverallProgress> handler)
+        => ((IPathedDownloadBuilder)this).OnProgress(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnEnded(Action<bool> handler)
+        => ((IPathedDownloadBuilder)this).OnEnded(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnError(Action<Exception> handler)
+        => ((IPathedDownloadBuilder)this).OnError(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnFileStarted(Action<IFileInstance> handler)
+        => ((IPathedDownloadBuilder)this).OnFileStarted(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnFileProgress(Action<IFileProgress> handler)
+        => ((IPathedDownloadBuilder)this).OnFileProgress(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnFileEnded(Action<IFileInstance> handler)
+        => ((IPathedDownloadBuilder)this).OnFileEnded(handler);
+
+    IDownloadBuilder IDownloadBuilder.OnFileError(Action<(IFileInstance File, Exception Exception)> handler)
+        => ((IPathedDownloadBuilder)this).OnFileError(handler);
+
+    IDownloadBuilder IDownloadBuilder.AddDownload(IDownloadDefinition download)
+        => ((IPathedDownloadBuilder)this).AddDownload(download);
+
+    IDownloadBuilder IDownloadBuilder.AddDownloads(IEnumerable<IDownloadDefinition> downloads)
+        => ((IPathedDownloadBuilder)this).AddDownloads(downloads);
+
+    IDownloadBuilder IDownloadBuilder.WithMaxChunkSize(long maxChunkSize)
+        => ((IPathedDownloadBuilder)this).WithMaxChunkSize(maxChunkSize);
+    
+    IDownloadSession IPathedDownloadBuilder.Build()
+        => ((IPathedDownloadBuilder)this).Build();
+
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.WithMaxChunkSize(long maxChunkSize)
     {
         _maxChunkSize = maxChunkSize;
         return this;
     }
     
-    public IDownloadBuilder WithMaxConcurrency(int maxConcurrency)
+    IPathedDownloadBuilder IPathedDownloadBuilder.WithMaxConcurrency(int maxConcurrency)
     {
         _maxConcurrency = maxConcurrency;
         return this;
     }
-    
-    public IDownloadBuilder WithFileDestinationType(FileWriterType fileWriterType)
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.WithFileDestinationType(FileWriterType fileWriterType)
     {
         _fileWriterType = fileWriterType;
         return this;
     }
-    
-    public IDownloadBuilder ConfigureHttpClient(Action<HttpClient> configure)
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.ConfigureHttpClient(Action<HttpClient> configure)
     {
         configure(_client);
         return this;
     }
-    
-    public IDownloadBuilder OnStarted(Action handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnStarted(Action handler) {
         _onStartedHandlers.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnProgress(Action<IOverallProgress> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnProgress(Action<IOverallProgress> handler) {
         _onProgressHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnEnded(Action<bool> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnEnded(Action<bool> handler) {
         _onEndedHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnError(Action<Exception> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnError(Action<Exception> handler) {
         _onErrorHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnFileStarted(Action<IFileInstance> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnFileStarted(Action<IFileInstance> handler) {
         _onFileStartedHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnFileProgress(Action<IFileProgress> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnFileProgress(Action<IFileProgress> handler) {
         _onFileProgressHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnFileEnded(Action<IFileInstance> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnFileEnded(Action<IFileInstance> handler) {
         _onFileEndedHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder OnFileError(Action<(IFileInstance File, Exception Exception)> handler) {
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.OnFileError(Action<(IFileInstance File, Exception Exception)> handler) {
         _onFileErrorHandler.Add(handler);
         return this;
     }
-    
-    public IDownloadBuilder AddDownload(IDownloadDefinition download)
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownload(IDownloadDefinition download)
     {
         _downloads.Add(download);
         return this;
     }
-    
-    public IDownloadBuilder AddDownloads(IEnumerable<IDownloadDefinition> downloads)
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownloads(IEnumerable<IDownloadDefinition> downloads)
     {
         _downloads.AddRange(downloads);
         return this;
@@ -128,20 +174,20 @@ public class DownloadBuilder : IPathedDownloadBuilder
         });
     }
 
-    public IPathedDownloadBuilder AddDownload(string url, bool overwrite = false)
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownload(string url, bool overwrite = false)
     {
         AddDownloadInternal(url, overwrite);
         return this;
     }
 
-    public IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls, bool overwrite = false)
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownloads(IEnumerable<string> urls, bool overwrite = false)
     {
         foreach (var url in urls)
             AddDownloadInternal(url, overwrite);
         return this;
     }
 
-    public IDownloadSession Build()
+    IDownloadSession IDownloadBuilder.Build()
     {
         var session = new DownloadSession(_maxChunkSize, _maxConcurrency, _fileWriterType, _client);
         foreach (var handler in _onStartedHandlers) session.OnStarted += (_, _) => handler();

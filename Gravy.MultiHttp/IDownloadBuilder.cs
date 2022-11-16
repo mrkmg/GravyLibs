@@ -24,4 +24,19 @@ public interface IPathedDownloadBuilder : IDownloadBuilder
 {
     IPathedDownloadBuilder AddDownload(string url, bool overwrite = false);
     IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls, bool overwrite = false);
+    new IPathedDownloadBuilder WithMaxChunkSize(long maxChunkSize);
+    new IPathedDownloadBuilder WithMaxConcurrency(int maxConcurrency);
+    new IPathedDownloadBuilder WithFileDestinationType(FileWriterType fileWriterType);
+    new IPathedDownloadBuilder ConfigureHttpClient(Action<HttpClient> configure);
+    new IPathedDownloadBuilder OnStarted(Action handler);
+    new IPathedDownloadBuilder OnProgress(Action<IOverallProgress> handler);
+    new IPathedDownloadBuilder OnEnded(Action<bool> handler);
+    new IPathedDownloadBuilder OnError(Action<Exception> handler);
+    new IPathedDownloadBuilder OnFileStarted(Action<IFileInstance> handler);
+    new IPathedDownloadBuilder OnFileProgress(Action<IFileProgress> handler);
+    new IPathedDownloadBuilder OnFileEnded(Action<IFileInstance> handler);
+    new IPathedDownloadBuilder OnFileError(Action<(IFileInstance File, Exception Exception)> handler);
+    new IPathedDownloadBuilder AddDownload(IDownloadDefinition download);
+    new IPathedDownloadBuilder AddDownloads(IEnumerable<IDownloadDefinition> downloads);
+    new IDownloadSession Build();
 }
