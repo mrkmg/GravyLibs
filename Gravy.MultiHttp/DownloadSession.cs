@@ -150,8 +150,10 @@ public sealed class DownloadSession : IDownloadSession
 
     private void ChunkErrored(FileInstance file, ChunkInstance chunk, Exception error)
     {
-        chunk.Errored(error);
-        file.SetErrored(error);
+        if (chunk.Status != DownloaderStatus.Complete)
+            chunk.Errored(error);
+        if (file.Status != DownloaderStatus.Complete)
+            file.SetErrored(error);
         OnError?.Invoke(this, error);
         OnEnded?.Invoke(this, false);
         OnFileError?.Invoke(this, (file, error));
