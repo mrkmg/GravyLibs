@@ -100,6 +100,8 @@ public static class MetaStringConsoleFormat
         => Assembler.Assemble(Tokenizer.Tokenize(str), strictMode).Optimize();
     
     public static string EscapeTags(this string str) => string.Join(@"\[", str.Split('['));
+
+    public static void WriteAnsiToConsole(this ConsoleString cs) => cs.WriteAnsiTo(Console.Out);
     
     public static void WriteAnsiTo(this ConsoleString cs, TextWriter writer)
     {
@@ -151,7 +153,7 @@ public static class MetaStringConsoleFormat
                 FontWeight.Bold => AnsiMode.Bold,
                 FontWeight.Light => AnsiMode.Faint,
                 FontWeight.Normal => AnsiMode.Normal,
-                _ => throw new ArgumentOutOfRangeException(nameof(toFormat.Weight)),
+                _ => throw new ("Missing definition for FontWeight"),
             });
 
         if (!fromFormat.Styles.HasFlag(FontStyle.Italic) && toFormat.Styles.HasFlag(FontStyle.Italic))
