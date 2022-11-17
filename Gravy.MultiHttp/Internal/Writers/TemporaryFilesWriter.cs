@@ -24,7 +24,7 @@ internal class TemporaryFilesWriter : IFileWriter
         _chunks[chunkIndex] = File.OpenWrite(GetChunkPath(chunkIndex));
     }
 
-    public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
+    public void WriteToChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
         _chunks[chunkIndex]?.Write(buffer.Span);
     }

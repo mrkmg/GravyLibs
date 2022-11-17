@@ -31,12 +31,15 @@ internal class DirectWriter : IFileWriter
 
     public void StartChunk(int chunkIndex) { }
 
-    public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
+    public void WriteToChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
         lock (_fileLock)
         {
-            _stream?.Seek(_chunkOffsets[chunkIndex], SeekOrigin.Begin);
-            _stream?.Write(buffer.Span);
+            if (_stream is not {} stream)
+                throw new("Internal Error");
+            if (stream.Position != _chunkOffsets[chunkIndex])
+                stream.Seek(_chunkOffsets[chunkIndex], SeekOrigin.Begin);
+            stream.Write(buffer.Span);
             _chunkOffsets[chunkIndex] += buffer.Length;
         }
     }
@@ -55,5 +58,6 @@ internal class DirectWriter : IFileWriter
     public void Dispose()
     {
         _stream?.Dispose();
+        _stream = null;
     }
 }

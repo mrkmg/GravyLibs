@@ -35,7 +35,7 @@ internal class HybridFileWriter : IFileWriter
         _chunkOffsets[chunkIndex] = 0;
     }
 
-    public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
+    public void WriteToChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
         buffer.CopyTo(_chunks[chunkIndex][_chunkOffsets[chunkIndex]..]);
         _chunkOffsets[chunkIndex] += buffer.Length;

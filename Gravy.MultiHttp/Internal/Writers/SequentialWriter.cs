@@ -27,7 +27,7 @@ internal class SequentialWriter : IFileWriter
         _currentChunk = chunkIndex;
     }
 
-    public void WriteChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
+    public void WriteToChunk(int chunkIndex, ReadOnlyMemory<byte> buffer)
     {
         if (_currentChunk != chunkIndex)
             throw new InvalidOperationException("Cannot write to a chunk that is not the current chunk.");

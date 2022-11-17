@@ -206,7 +206,7 @@ public sealed class DownloadSession : IDownloadSession
             if (_runningCancellationTokenSource.IsCancellationRequested)
                 throw new OperationCanceledException();
             
-            file.Writer.WriteChunk(chunk.ChunkIndex, buffer.Memory[..readBytes]);
+            file.Writer.WriteToChunk(chunk.ChunkIndex, buffer.Memory[..readBytes]);
             ChunkProgressed(file, chunk, readBytes);
             buffer.TriggerTick();
         }
