@@ -14,7 +14,7 @@ public class ConfigurationObject
         _pool = new (new ()
         {
             MaxLeases = 1,
-            IdleTimeout = 100,
+            IdleTimeout = 500,
             Initializer = TestObjHelpers.Initialize,
             Finalizer = TestObjHelpers.OnFinalize,
             Validator = TestObjHelpers.OnValidate,
@@ -51,9 +51,10 @@ public class ConfigurationObject
     [Test]
     public void MaxLeases()
     {
-        var obj1 = _pool.Lease();
-        Assert.That(() => _pool.Lease(1), Throws.InstanceOf<LeaseTimeoutException>());
-        obj1.Dispose();
+        Assert.That(() => {
+            using var obj1 = _pool.Lease();
+            return _pool.Lease(1);
+        }, Throws.InstanceOf<LeaseTimeoutException>());
     }
 
     [Test]
@@ -62,7 +63,7 @@ public class ConfigurationObject
         var obj = _pool.Lease();
         obj.Value.Custom = true;
         obj.Dispose();
-        Thread.Sleep(150);
+        Thread.Sleep(550);
         var obj2 = _pool.Lease();
         Assert.That(obj2.Value.Custom, Is.False);
         obj2.Dispose();

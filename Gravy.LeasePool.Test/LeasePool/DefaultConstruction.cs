@@ -71,6 +71,6 @@ public class DefaultConstruction
     {
         var obj = _pool.Lease();
         obj.Dispose();
-        Assert.That(() => obj.Dispose(), Throws.TypeOf<ObjectDisposedException>().With.Message.EqualTo("Lease already disposed.\nObject name: 'ActiveLease'."));
+        Assert.That(() => obj.Dispose(), Throws.TypeOf<ObjectDisposedException>().With.Message.EqualTo("Lease already disposed."+Environment.NewLine+"Object name: 'ActiveLease'."));
     }
 }

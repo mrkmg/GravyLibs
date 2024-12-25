@@ -15,11 +15,12 @@ public sealed class DownloadSession : IDownloadSession
         MaxConcurrency = maxConcurrency;
         _fileWriterType = fileWriterType;
         _client = client ?? new();
+        _urlProcessor = new(_client);
         _overallProgress = new();
         _downloadAggregator = new(Enumerable.Repeat<Action>(RunnerThread, MaxConcurrency).ToArray());
     }
     
-    private const string HeaderAcceptRangesKey = "Accept-Ranges";
+    
     private const int DefaultBufferSize = 2048; // 2KB
     private const int MaxBufferSize = 8 * 1024 * 1024; // 8MB
     private const int MinBufferSize = 1024; // 1KB
@@ -28,6 +29,7 @@ public sealed class DownloadSession : IDownloadSession
     private readonly HttpClient _client;
     private readonly FileDefinitions _fileDefinitions = new();
     private readonly ActionPool _downloadAggregator;
+    private readonly UrlProcessor _urlProcessor;
 
     private CancellationTokenSource _runningCancellationTokenSource = new();
     private OverallProgress _overallProgress;
@@ -52,11 +54,8 @@ public sealed class DownloadSession : IDownloadSession
         if (!definition.Overwrite && File.Exists(definition.DestinationFilePath))
             throw new ArgumentException($"{definition.DestinationFilePath} already exists and overwrite is false");
 
-        var (totalBytes, acceptsRange) = GetHeaderData(definition, token ?? CancellationToken.None);
-        var numChunksNeeded = acceptsRange && _fileWriterType != FileWriterType.DirectSequential ? (int)Math.Ceiling(totalBytes / (double)MaxChunkSize) : 1;
-        var chunks = MakeChunks(totalBytes, numChunksNeeded);
-        var file = new FileInstance(Guid.NewGuid(), definition, numChunksNeeded == 1 ? FileWriterType.DirectSequential : _fileWriterType, totalBytes, chunks);
-
+        var file = _urlProcessor.ProcessDownload(definition, MaxChunkSize, _fileWriterType, token);
+        
         _overallProgress.FileAdded(file.TotalBytes);
         _fileDefinitions.AddInstance(file);
         return file;
@@ -213,40 +212,6 @@ public sealed class DownloadSession : IDownloadSession
 
         _overallProgress.ThreadFinished();
         ChunkCompleted(file, chunk);
-    }
-
-    private static ChunkInstance[] MakeChunks(long totalBytes, long numChunksNeeded)
-    {
-        var chunkSize = totalBytes / numChunksNeeded;
-        var chunks = new ChunkInstance[numChunksNeeded];
-        var currentChunkIndex = 0;
-        while (currentChunkIndex < chunks.Length - 1)
-        {
-            chunks[currentChunkIndex] = new(currentChunkIndex, currentChunkIndex * chunkSize, (currentChunkIndex + 1) * chunkSize - 1);
-            currentChunkIndex++;
-        }
-        chunks[currentChunkIndex] = new(currentChunkIndex, currentChunkIndex * chunkSize, totalBytes - 1);
-        return chunks;
-    }
-
-    private (long totalBytes, bool acceptsRange) GetHeaderData(IDownloadDefinition definition, CancellationToken token)
-    {
-        using var requestMessage = new HttpRequestMessage(HttpMethod.Head, definition.SourceUri);
-        using var responseMessage = _client.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
-
-        if (!responseMessage.IsSuccessStatusCode)
-            throw new HttpRequestException($"HEAD failed with code \"{responseMessage.StatusCode}\" for \"{definition.SourceUri}\"", null, responseMessage.StatusCode);
-
-        if (responseMessage.Content.Headers.ContentLength is null)
-            throw new MissingContentLengthException(definition.SourceUri);
-
-        var totalBytes = responseMessage.Content.Headers.ContentLength.Value;
-        if (totalBytes <= 0)
-            throw new MissingContentLengthException(definition.SourceUri);
-
-        var acceptsRange = responseMessage.Headers.Contains(HeaderAcceptRangesKey) &&
-                           responseMessage.Headers.GetValues(HeaderAcceptRangesKey).Any(x => x == "bytes");
-        return (totalBytes, acceptsRange);
     }
 }
 
