@@ -6,7 +6,7 @@ namespace Gravy.LeasePool.Test;
 
 public class ConfigurationObject
 {
-    private LeasePool<TestObj> _pool;
+    private LeasePool<TestObj> _pool = null!;
     
     [SetUp]
     public void Setup()

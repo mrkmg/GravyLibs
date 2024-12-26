@@ -22,8 +22,10 @@ public interface IDownloadBuilder
 
 public interface IPathedDownloadBuilder : IDownloadBuilder
 {
-    IPathedDownloadBuilder AddDownload(string url, bool overwrite = false);
-    IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls, bool overwrite = false);
+    IPathedDownloadBuilder AddDownload(string url);
+    IPathedDownloadBuilder AddDownload(string url, bool overwrite);
+    IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls);
+    IPathedDownloadBuilder AddDownloads(IEnumerable<string> urls, bool overwrite);
     new IPathedDownloadBuilder WithMaxChunkSize(long maxChunkSize);
     new IPathedDownloadBuilder WithMaxConcurrency(int maxConcurrency);
     new IPathedDownloadBuilder WithFileDestinationType(FileWriterType fileWriterType);

@@ -12,8 +12,8 @@
         <Title>Gravy.UsingLock</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>A simple class to assist in being async/thread safe.</Description>
-        <Copyright>2022 Public Domain</Copyright>
-        <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
+        <Copyright>2022-2025 Kevin Gravier</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.UsingLock/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -25,7 +25,7 @@
     </PropertyGroup>
 
     <Target Name="CopyNuget" AfterTargets="Pack">
-        <Copy SourceFiles="$(ProjectDir)/bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)/Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
+        <Copy SourceFiles="$(ProjectDir)bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
     </Target>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">

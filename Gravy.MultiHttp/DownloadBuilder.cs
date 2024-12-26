@@ -174,13 +174,26 @@ public class DownloadBuilder : IPathedDownloadBuilder
         });
     }
 
-    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownload(string url, bool overwrite = false)
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownload(string url)
+    {
+        AddDownloadInternal(url, false);
+        return this;
+    }
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownload(string url, bool overwrite)
     {
         AddDownloadInternal(url, overwrite);
         return this;
     }
 
-    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownloads(IEnumerable<string> urls, bool overwrite = false)
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownloads(IEnumerable<string> urls)
+    {
+        foreach (var url in urls)
+            AddDownloadInternal(url, false);
+        return this;
+    }
+
+    IPathedDownloadBuilder IPathedDownloadBuilder.AddDownloads(IEnumerable<string> urls, bool overwrite)
     {
         foreach (var url in urls)
             AddDownloadInternal(url, overwrite);
