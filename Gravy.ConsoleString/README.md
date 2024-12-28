@@ -80,8 +80,10 @@ tag has a start and end, and can adjust a variety of formatting options.
 
 #### Possible Tags
 
-- `[F{COLOR}][/F]`: Set the foreground to `{COLOR}`. See how to choose a color below.
-- `[G{COLOR}][/G]`: Set the background to `{COLOR}`. See how to choose a color below.
+- `[F{COLOR}][/F]`: Set the foreground to `{COLOR}`. *See how to choose a 
+  color below.*
+- `[G{COLOR}][/G]`: Set the background to `{COLOR}`. *See how to choose a 
+  color below.*
 - `[B][/B]`: Set the text to bold.
 - `[I][/I]`: Set the text to italic.
 - `[U][/U]`: Set the text to underline.
@@ -89,7 +91,10 @@ tag has a start and end, and can adjust a variety of formatting options.
 - `[V][/V]`: Set the text to inverse.
 - `[T][/T]`: Set the text to strikethrough.
 - `[L][/L]`: Set the text to light.
-- `[/]`: Reset all formatting. Not available in strict mode.
+- `[//]`: Reset all formatting. *Not available in strict mode.*
+
+You can escape a tag by using a backslash before the opening bracket. e.g. 
+`\[This is not a tag]`.
 
 ##### Colors
 
