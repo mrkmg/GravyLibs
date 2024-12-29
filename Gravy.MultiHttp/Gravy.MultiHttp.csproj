@@ -9,7 +9,7 @@
 
     <PropertyGroup>
         <PackageId>Gravy.MultiHttp</PackageId>
-        <Version>0.6.1</Version>
+        <Version>0.7.0</Version>
         <Title>Gravy.MultiHttp</Title>
         <Authors>Kevin Gravier &lt;https://github.com/mrkmg&gt;</Authors>
         <Description>Library for making multiple HTTP requests in parallel and chunking downloads.</Description>
