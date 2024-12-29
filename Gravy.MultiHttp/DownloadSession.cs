@@ -13,7 +13,7 @@ public sealed class DownloadSession : IDownloadSession
     {
         MaxChunkSize = maxChunkSize;
         MaxConcurrency = maxConcurrency;
-        _fileWriterType = fileWriterType;
+        FileWriterType = fileWriterType;
         _client = client ?? new();
         _urlProcessor = new(_client);
         _overallProgress = new();
@@ -25,7 +25,6 @@ public sealed class DownloadSession : IDownloadSession
     private const int MaxBufferSize = 8 * 1024 * 1024; // 8MB
     private const int MinBufferSize = 1024; // 1KB
 
-    private readonly FileWriterType _fileWriterType;
     private readonly HttpClient _client;
     private readonly FileDefinitions _fileDefinitions = new();
     private readonly ActionPool _downloadAggregator;
@@ -47,6 +46,9 @@ public sealed class DownloadSession : IDownloadSession
     public bool IsRunning { get; private set; }
     public long MaxChunkSize { get; }
     public int MaxConcurrency { get; }
+    public FileWriterType FileWriterType { get; }
+
+    public IEnumerable<IFileInstance> Files => _fileDefinitions.FileInstanceList;
     public Task CompletionTask => _downloadAggregator.Task;
 
     public IFileInstance AddDownload(IDownloadDefinition definition, CancellationToken? token = null)
@@ -54,7 +56,7 @@ public sealed class DownloadSession : IDownloadSession
         if (!definition.Overwrite && File.Exists(definition.DestinationFilePath))
             throw new ArgumentException($"{definition.DestinationFilePath} already exists and overwrite is false");
 
-        var file = _urlProcessor.ProcessDownload(definition, MaxChunkSize, _fileWriterType, token);
+        var file = _urlProcessor.ProcessDownload(definition, MaxChunkSize, FileWriterType, token);
         
         _overallProgress.FileAdded(file.TotalBytes);
         _fileDefinitions.AddInstance(file);

@@ -1,5 +1,11 @@
 ﻿namespace Gravy.MultiHttp.Internal;
 
+/// <summary>
+/// A buffer that dynamically resizes based on the time it takes to perform operations.
+///
+/// Call <see cref="TriggerTick"/> after each operation on the buffer. This will both clear
+/// and resize the buffer if needed.
+/// </summary>
 public struct DynamicallySizedBuffer
 {
     private readonly int _minTicksPerOperation;

@@ -72,7 +72,7 @@ public class DownloadBuilder : IPathedDownloadBuilder
         => ((IPathedDownloadBuilder)this).WithMaxChunkSize(maxChunkSize);
     
     IDownloadSession IPathedDownloadBuilder.Build()
-        => ((IPathedDownloadBuilder)this).Build();
+        => ((IDownloadBuilder)this).Build();
 
 
     IPathedDownloadBuilder IPathedDownloadBuilder.WithMaxChunkSize(long maxChunkSize)
