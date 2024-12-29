@@ -17,6 +17,7 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/mrkmg/GravyLibs/Gravy.Ansi/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrkmg/GravyLibs.git</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <PackageTags>ansi, terminal, escape codes</PackageTags>
@@ -28,6 +29,10 @@
     <Target Name="CopyNuget" AfterTargets="Pack">
         <Copy SourceFiles="$(ProjectDir)bin/$(Configuration)/$(PackageId).$(Version).nupkg" DestinationFiles="$(SolutionDir)Packages/$(Configuration)/$(PackageId).$(Version).nupkg" OverwriteReadOnlyFiles="true" />
     </Target>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
